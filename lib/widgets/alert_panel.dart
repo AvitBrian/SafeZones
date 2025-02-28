@@ -197,17 +197,20 @@ class _AlertsPanelState extends State<AlertsPanel>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: () {
-                    final mapProvider = Provider.of<MapProvider>(context, listen: false);
-                    final cameraPos = mapProvider.currentCameraPosition;
-                    if (cameraPos != null) {
-                      mapProvider.onMapLongPress(
-                        cameraPos.target,
-                        widget.customPinIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                      );
-                    }
-                  },
-                  child: const Text("Flag"),
+                onPressed: () {
+                  final mapProvider = Provider.of<MapProvider>(context, listen: false);
+                  final cameraPos = mapProvider.currentCameraPosition;
+                  if (cameraPos != null) {
+                    mapProvider.handleMapLongPress(
+                      cameraPos.target,
+                      widget.customPinIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                      context,
+                      MyConstants(),
+                    );
+                  }
+                },
+                child: Text("Flag"),
+
                 ),
               ),
             ],

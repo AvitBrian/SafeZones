@@ -1,0 +1,2 @@
+/home/kira/Code/ALU/Capstone /SafeZones/android/app/.cxx/Debug/3w4t4c42/armeabi-v7a/CMakeFiles/edit_cache.dir
+/home/kira/Code/ALU/Capstone /SafeZones/android/app/.cxx/Debug/3w4t4c42/armeabi-v7a/CMakeFiles/rebuild_cache.dir
