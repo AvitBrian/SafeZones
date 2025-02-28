@@ -1,0 +1,2 @@
+/home/kira/Code/SafeZones/safezones/android/app/.cxx/RelWithDebInfo/6647p2y5/arm64-v8a/CMakeFiles/edit_cache.dir
+/home/kira/Code/SafeZones/safezones/android/app/.cxx/RelWithDebInfo/6647p2y5/arm64-v8a/CMakeFiles/rebuild_cache.dir

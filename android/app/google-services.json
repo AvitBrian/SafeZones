@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "716962636935",
+    "project_id": "safezones-dc681",
+    "storage_bucket": "safezones-dc681.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716962636935:android:41c38123d28e1294abc422",
+        "android_client_info": {
+          "package_name": "com.alu.safezones"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "716962636935-2tbh11915d8p3p27bl78fnk2cp9hs60q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alu.safezones",
+            "certificate_hash": "06d72e57bebe0520ad6b3871199e9605dd8d6afc"
+          }
+        },
+        {
+          "client_id": "716962636935-e15fnv1b3b8sne6k8csfn372aa7t95ig.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFYJ4OSTHgObKa9l7wx71XWPL1zibf890"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "716962636935-e15fnv1b3b8sne6k8csfn372aa7t95ig.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
