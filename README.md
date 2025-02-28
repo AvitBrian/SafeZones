@@ -1,7 +1,8 @@
 # SafeZones
 The primary objective of this project is to develop a mobile application, SafeZones, that enhances public safety by providing real-time alerts about dangerous locations. The app will use GPS and AI-driven predictive models to deliver timely notifications and optimize safety for users.
 
-![prototype](prototype_video.mp4)
+[Link to video](https://drive.google.com/file/d/148bTnqBxP98kSioGt8Jdu51pBKAqMkOi/view?usp=drive_link) <br>
+[Link to Apk](https://drive.google.com/file/d/1kMU1M_m9CPdgExdhUHl5rOtPZJGmRFV4/view?usp=drive_link) <br>
 To run the project:
 Install required dependencies and run the project:
 ```
