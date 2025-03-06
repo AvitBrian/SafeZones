@@ -1,68 +1,160 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:flutter/material.dart';
 import 'package:safezones/models/zone_model.dart';
 import 'package:safezones/providers/settings_provider.dart';
+import '../services/places_service.dart';
 import '../utils/constants.dart';
 import '../widgets/warning.dart';
+import 'package:safezones/services/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MapProvider with ChangeNotifier {
+  final PlacesService _placesService = PlacesService();
+  final Map<String, Zone> _flaggedZones = {};
+  final Completer<GoogleMapController> _mapController = Completer();
+  final FirestoreService _firestoreService = FirestoreService();
+  
   Set<Circle> _circles = {};
   Set<Marker> _markers = {};
-  Position? _currentPosition;
-  bool _isLoading = true;
-  bool _isInDangerZone = false;
-  StreamSubscription<Position>? _positionSubscription;
   List<Zone> _zones = [];
   Set<String> _notifiedZones = {};
+  Position? _currentPosition;
+  StreamSubscription<Position>? _positionSubscription;
+  BitmapDescriptor? customIcon;
+  CameraPosition? _currentCameraPosition;
   String _notifiedZoneId = "";
-  String get notifiedZoneId => _notifiedZoneId;
-  Completer<GoogleMapController> _mapController = Completer();
+  bool _isLoading = true;
   bool _isWarningActive = false;
-  bool get isWarningActive => _isWarningActive;
+  bool _isInDangerZone = false;
+  DocumentSnapshot? _lastFetchedDocument;
 
   Set<Circle> get circles => _circles;
   Set<Marker> get markers => _markers;
-  bool get isLoading => _isLoading;
-  bool get isInDangerZone => _isInDangerZone;
   List<Zone> get zones => _zones;
-  Position? get currentPosition => _currentPosition;
-  final Map<String, Zone> _flaggedZones = {};
   Map<String, Zone> get flaggedZones => _flaggedZones;
+  Position? get currentPosition => _currentPosition;
+  CameraPosition? get currentCameraPosition => _currentCameraPosition;
+  String get notifiedZoneId => _notifiedZoneId;
+  bool get isLoading => _isLoading;
+  bool get isWarningActive => _isWarningActive;
+  bool get isInDangerZone => _isInDangerZone;
+
+  List<String> dangerTypes = [
+    'Theft',
+    'Assault',
+    'Accident',
+    'Natural Hazard',
+    'Other'
+  ];
 
   Future<void> checkLocationPermissions(SettingsProvider settings, BuildContext context) async {
+    if (!settings.locationTracking) {
+      _isLoading = false;
+      if (_positionSubscription != null) {
+        await _positionSubscription!.cancel();
+        _positionSubscription = null;
+      }
+      _currentPosition = null;
+      notifyListeners();
+      return;
+    }
+
     try {
       final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
       _currentPosition = position;
+      await _loadZones(LatLng(position.latitude, position.longitude));
       _isLoading = false;
+      
+      if (_positionSubscription != null) {
+        await _positionSubscription!.cancel();
+      }
+
       _positionSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 1),
       ).listen((position) {
         _currentPosition = position;
+        if (settings.soundAlertsEnabled) {
         _checkProximityToDangerZones(position, settings, context);
+        } else if (_isWarningActive) {
+          snoozeAlert();
+        }
         notifyListeners();
       });
-      _loadZones(position);
     } catch (e) {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<GoogleMapController> getMapController() async {
-    return _mapController.future;
+  Future<void> _loadZones(LatLng userLocation) async {
+    final result = await _firestoreService.fetchFlaggedZones(userLocation, 5);
+    final fetchedZones = result['zones'] as List<Zone>;
+    
+    _flaggedZones.clear();
+    for (var zone in fetchedZones) {
+      _flaggedZones[zone.id] = zone;
+    }
+    
+    _reclusterZones();
   }
 
-  CameraPosition? _currentCameraPosition;
-  CameraPosition? get currentCameraPosition => _currentCameraPosition;
+  void _reclusterZones() {
+    final flaggedLocations = _flaggedZones.values.map((zone) => zone.center).toList();
+    final clusters = <Zone>[];
+    
+    for (var i = 0; i < flaggedLocations.length; i++) {
+      final nearbyFlags = <Zone>[];
+      
+      for (var zone in _flaggedZones.values) {
+        if (_calculateDistance(flaggedLocations[i], zone.center) <= 300) {
+          nearbyFlags.add(zone);
+        }
+      }
+      
+      if (nearbyFlags.length > 1) {
+        clusters.add(Zone.dangerZone(
+          'danger_${DateTime.now().millisecondsSinceEpoch}_$i',
+          _calculateCenter(nearbyFlags.map((z) => z.center).toList()),
+          nearbyFlags
+        ));
+      }
+    }
 
-  void updateCameraPosition(CameraPosition position) {
-    _currentCameraPosition = position;
+    _zones = [..._flaggedZones.values, ...clusters];
+    _updateMap();
   }
 
-  void updateZones(List<LatLng> flaggedLocations) {
-    _zones = Zone.createZones(flaggedLocations);
+  void _updateMap() {
+    final markers = <Marker>{};
+    final circles = <Circle>{};
+
+    for (var zone in _zones) {
+      if (zone.type == ZoneType.flag) {
+        markers.add(Marker(
+          markerId: MarkerId(zone.id),
+          position: zone.center,
+          icon: customIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(
+            title: 'Danger: ${zone.dangerTag}',
+            snippet: 'Police: ${zone.policeDistance?.toStringAsFixed(0)}m, Hospital: ${zone.hospitalDistance?.toStringAsFixed(0)}m',
+          ),
+        ));
+      } else {
+        circles.add(Circle(
+          circleId: CircleId(zone.id),
+          center: zone.center,
+          radius: zone.radius,
+          fillColor: Colors.redAccent.withAlpha((zone.dangerLevel * 255).round()),
+          strokeColor: Colors.red,
+          strokeWidth: 2,
+        ));
+      }
+    }
+
+    _markers = markers;
+    _circles = circles;
     notifyListeners();
   }
 
@@ -71,6 +163,7 @@ class MapProvider with ChangeNotifier {
     Zone? closestZone;
     double closestDistance = double.infinity;
     _reclusterZones();
+
     for (var zone in _zones) {
       double distance = Geolocator.distanceBetween(
         position.latitude,
@@ -78,14 +171,17 @@ class MapProvider with ChangeNotifier {
         zone.center.latitude,
         zone.center.longitude,
       );
+
       if (distance < closestDistance) {
         closestDistance = distance;
         closestZone = zone;
       }
+
       if (distance < zone.radius) {
         inDangerZone = true;
       }
     }
+
     if (closestZone != null && closestDistance <= (closestZone.radius + settings.alertRadius)) {
       if (!_notifiedZones.contains(closestZone.id)) {
         if (settings.soundAlertsEnabled && !_isWarningActive) {
@@ -93,6 +189,7 @@ class MapProvider with ChangeNotifier {
             context,
             message: "You are near a danger zone!",
             color: Colors.red,
+            zoneId: closestZone.id,
             onSnooze: snoozeAlert,
           );
           _isWarningActive = true;
@@ -101,113 +198,203 @@ class MapProvider with ChangeNotifier {
       }
       _notifiedZoneId = closestZone.id;
     }
+
     _isInDangerZone = inDangerZone;
     notifyListeners();
   }
 
-  void _loadZones(Position position) {
-    final baseLocation = LatLng(position.latitude, position.longitude);
-    final flaggedCoordinates = _generateFlaggedCoordinates(baseLocation);
-    final zones = Zone.createZones(flaggedCoordinates, clusterDistance: 300);
-    _createMarkersForFlaggedCoordinates(flaggedCoordinates);
-    _updateMap(zones);
-    if (customIcon != null) {
-      initializeMarkersWithCustomIcon(customIcon!);
-    }
-  }
+  Future<void> updateNearestFacilityDistances(Zone zone) async {
+    final hospitalDistance = await _placesService.getDistanceToClosestPlace(
+      latitude: zone.center.latitude,
+      longitude: zone.center.longitude,
+      type: 'hospital',
+    );
 
-  BitmapDescriptor? customIcon;
+    final policeDistance = await _placesService.getDistanceToClosestPlace(
+      latitude: zone.center.latitude,
+      longitude: zone.center.longitude,
+      type: 'police',
+    );
 
-  void updateMarkersWithCustomIcon(BitmapDescriptor icon) {
-    customIcon = icon;
-    final updatedMarkers = <Marker>{};
-    for (var marker in _markers) {
-      updatedMarkers.add(Marker(
-        markerId: marker.markerId,
-        position: marker.position,
-        icon: icon,
-        infoWindow: marker.infoWindow,
-      ));
+    // Create new zone with updated distances
+    final updatedZone = Zone(
+      id: zone.id,
+      center: zone.center,
+      type: zone.type,
+      dangerTag: zone.dangerTag,
+      policeDistance: policeDistance,
+      hospitalDistance: hospitalDistance,
+      radius: zone.radius,
+      dangerLevel: zone.dangerLevel,
+      count: zone.count,
+    );
+
+    // Update the zone in our maps
+    if (zone.type == ZoneType.flag) {
+      _flaggedZones[zone.id] = updatedZone;
     }
-    _markers = updatedMarkers;
+    
+    final zoneIndex = _zones.indexWhere((z) => z.id == zone.id);
+    if (zoneIndex != -1) {
+      _zones[zoneIndex] = updatedZone;
+    }
+
+    _updateMap();
     notifyListeners();
   }
 
-  void _createMarkersForFlaggedCoordinates(List<LatLng> coordinates) {
-    for (var i = 0; i < coordinates.length; i++) {
-      final coordinate = coordinates[i];
-      final markerId = 'predefined_flagged_${i}';
-      final zone = Zone(
-        id: markerId,
-        center: coordinate,
-        radius: 0,
-        dangerLevel: 0,
-        type: ZoneType.flagged,
-        count: 1,
+  Future<void> _addFlaggedZone({
+    required LatLng position,
+    required BitmapDescriptor icon,
+    required String dangerTag,
+  }) async {
+    final exists = _flaggedZones.values.any((zone) {
+      final distance = _calculateDistance(
+        LatLng(zone.center.latitude, zone.center.longitude),
+        position,
       );
-      _zones.add(zone);
-    }
-  }
+      return distance <= 5;
+    });
 
-  void initializeMarkersWithCustomIcon(BitmapDescriptor customIcon) {
-    final newMarkers = <Marker>{};
-
-    for (var zone in _flaggedZones.values) {
-      newMarkers.add(Marker(
-        markerId: MarkerId(zone.id),
-        position: zone.center,
-        icon: customIcon,
-        infoWindow: InfoWindow(
-          title: 'Danger: ${zone.dangerTag}',
-          snippet: 'Lighting: ${zone.lighting}',
-        ),
-      ));
+    if (exists) {
+      print("Zone already exists at this location!");
+      return;
     }
 
-    _markers = newMarkers;
+    // Calculate distances to the nearest hospital and police station
+    final policeDistance = await _placesService.getDistanceToClosestPlace(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      type: 'police',
+    );
+    final hospitalDistance = await _placesService.getDistanceToClosestPlace(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      type: 'hospital',
+    );
+
+    // Create a new Zone object
+    final newZone = Zone(
+      id: 'flagged_${DateTime.now().millisecondsSinceEpoch}',
+      center: position,
+      radius: 0, // Not needed for flagged zones
+      dangerLevel: 0, // Not needed for flagged zones
+      type: ZoneType.flag,
+      count: 1,
+      dangerTag: dangerTag,
+      policeDistance: policeDistance,
+      hospitalDistance: hospitalDistance,
+    );
+
+    // Add the new zone to the local state
+    _flaggedZones[newZone.id] = newZone;
+
+    // Send the flagged zone to Firestore
+    await _firestoreService.addFlaggedZone(position, dangerTag);
+
+    // Optionally, update the markers on the map
+    _markers.add(Marker(
+      markerId: MarkerId(newZone.id),
+      position: position,
+      icon: icon,
+      infoWindow: InfoWindow(
+        title: 'Danger: $dangerTag',
+        snippet: 'Police: ${policeDistance?.toStringAsFixed(0)} m, Hospital: ${hospitalDistance?.toStringAsFixed(0)} m',
+      ),
+    ));
+
+    // Recluster zones and notify listeners
+    _reclusterZones();
     notifyListeners();
   }
 
-  List<LatLng> _generateFlaggedCoordinates(LatLng baseLocation) {
-    return [
-      LatLng(baseLocation.latitude + 0.001, baseLocation.longitude + 0.001),
-      LatLng(baseLocation.latitude + 0.0012, baseLocation.longitude + 0.0012),
-      LatLng(baseLocation.latitude + 0.0013, baseLocation.longitude + 0.0011),
-      LatLng(baseLocation.latitude + 0.004, baseLocation.longitude - 0.002),
-      LatLng(baseLocation.latitude - 0.002, baseLocation.longitude - 0.002),
-      LatLng(baseLocation.latitude - 0.0021, baseLocation.longitude - 0.0021),
-      LatLng(baseLocation.latitude - 0.0022, baseLocation.longitude - 0.0023),
-      LatLng(baseLocation.latitude - 0.005, baseLocation.longitude + 0.005),
-      LatLng(baseLocation.latitude + 0.003, baseLocation.longitude + 0.004),
-      LatLng(baseLocation.latitude + 0.0031, baseLocation.longitude + 0.0042),
-      LatLng(baseLocation.latitude + 0.0032, baseLocation.longitude + 0.0041),
-    ];
+  Future<void> handleMapLongPress(LatLng position, BuildContext context, {BitmapDescriptor? icon}) async {
+    if (_calculateDistance(position, LatLng(_currentPosition!.latitude, _currentPosition!.longitude)) > 1000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Can only flag zones within 1km of your location'))
+      );
+      return;
+    }
+
+    String? selectedDangerTag;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: MyConstants.primaryColor,
+        title: Text('Flag Danger Zone', style: TextStyle(color: MyConstants.secondaryColor)),
+        content: DropdownButtonFormField<String>(
+          dropdownColor: MyConstants.primaryColor,
+          items: dangerTypes.map((type) => 
+            DropdownMenuItem(value: type, child: Text(type, style: TextStyle(color: MyConstants.secondaryColor)))
+          ).toList(),
+          onChanged: (value) => selectedDangerTag = value,
+          decoration: InputDecoration(
+            labelText: 'Danger Type',
+            labelStyle: TextStyle(color: MyConstants.secondaryColor)
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: MyConstants.secondaryColor)),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (selectedDangerTag != null) {
+                await _addFlaggedZone(
+                  position: position,
+                  icon: icon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                  dangerTag: selectedDangerTag!,
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Confirm', style: TextStyle(color: MyConstants.secondaryColor)),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _updateMap(List<Zone> zones) {
-    final markers = <Marker>{};
-    final circles = <Circle>{};
-    for (var zone in zones.where((z) => z.type != ZoneType.flagged)) {
-      circles.add(Circle(
-        circleId: CircleId(zone.id),
-        center: zone.center,
-        radius: zone.radius,
-        fillColor: Colors.redAccent.withOpacity(zone.dangerLevel),
-        strokeColor: Colors.red,
-        strokeWidth: 2,
-      ));
+  void updateCameraPosition(CameraPosition position) {
+    _currentCameraPosition = position;
+  }
+
+  Future<void> centerOnUser() async {
+    if (_currentPosition == null || !_mapController.isCompleted) return;
+    final controller = await _mapController.future;
+    await controller.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        18,
+      ),
+    );
+  }
+
+  Future<void> centerOnZone(Zone zone, ZoneType zonetype) async {
+    if (!_mapController.isCompleted) return;
+    final controller = await _mapController.future;
+    if (zonetype == ZoneType.flag) {
+      await controller.animateCamera(
+        CameraUpdate.newLatLngZoom(zone.center, 25),
+      );
+    } else {
+      await controller.animateCamera(
+        CameraUpdate.newLatLngZoom(zone.center, 20),
+      );
     }
-    for (var zone in zones.where((z) => z.type == ZoneType.flagged)) {
-      markers.add(Marker(
-        markerId: MarkerId(zone.id),
-        position: zone.center,
-        icon: customIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        infoWindow: const InfoWindow(title: "Flagged Zone"),
-      ));
+  }
+
+  void setMapController(GoogleMapController controller) {
+    if (!_mapController.isCompleted) {
+      _mapController.complete(controller);
     }
-    _markers = markers;
-    _circles = circles;
-    _zones = zones;
+  }
+
+  void snoozeAlert() {
+    _isWarningActive = false;
+    _notifiedZones.clear();
+    _notifiedZoneId = "";
     notifyListeners();
   }
 
@@ -215,7 +402,7 @@ class MapProvider with ChangeNotifier {
     this.customIcon = customIcon;
     final allMarkers = <Marker>{};
     for (var zone in _zones) {
-      if (zone.type == ZoneType.flagged) {
+      if (zone.type == ZoneType.flag) {
         allMarkers.add(Marker(
           markerId: MarkerId(zone.id),
           position: zone.center,
@@ -237,229 +424,16 @@ class MapProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> centerOnUser() async {
-    if (_currentPosition == null || !_mapController.isCompleted) return;
-    final controller = await _mapController.future;
-    await controller.animateCamera(
-      CameraUpdate.newLatLngZoom(
-        LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-        18,
-      ),
-    );
+  LatLng _calculateCenter(List<LatLng> points) {
+    final lat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
+    final lng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
+    return LatLng(lat, lng);
   }
 
-  void setMapController(GoogleMapController controller) {
-    if (!_mapController.isCompleted) {
-      _mapController.complete(controller);
-    }
-  }
-
-  void _reclusterZones() {
-    final newZones = Zone.reclusterZones(_zones, clusterDistance: 300);
-    _zones = newZones;
-    _updateMap(_zones);
-    notifyListeners();
-  }
-
-  void handleMapLongPress(
-      LatLng position,
-      BitmapDescriptor icon,
-      BuildContext context,
-      MyConstants constants,
-      ) {
-    String? selectedDangerTag;
-    String? selectedLighting;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: MyConstants.primaryColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-              side: BorderSide(color: MyConstants.secondaryColor, width: 2),
-            ),
-            title: Text('Flag Danger Zone',
-                style: TextStyle(
-                  color: MyConstants.secondaryColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                )),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  dropdownColor: MyConstants.primaryColor,
-                  style: TextStyle(color: MyConstants.secondaryColor),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: MyConstants.primaryColor.withOpacity(0.9),
-                    labelText: 'Danger Type',
-                    labelStyle: TextStyle(color: MyConstants.secondaryColor),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: MyConstants.secondaryColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: MyConstants.secondaryColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                          color: MyConstants.secondaryColor, width: 2),
-                    ),
-                  ),
-                  items: const ['Theft', 'Assault', 'Accident', 'Natural Hazard', 'Other']
-                      .map((e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e,
-                        style: TextStyle(
-                            color: MyConstants.secondaryColor)),
-                  ))
-                      .toList(),
-                  onChanged: (value) => selectedDangerTag = value,
-                  icon: Icon(Icons.arrow_drop_down,
-                      color: MyConstants.secondaryColor),
-                  borderRadius: BorderRadius.circular(10),
-                  focusColor: MyConstants.primaryColor.withAlpha(80),
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<String>(
-                  dropdownColor: MyConstants.primaryColor,
-                  style: TextStyle(color: MyConstants.secondaryColor),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: MyConstants.primaryColor.withOpacity(0.9),
-                    labelText: 'Lighting Condition',
-                    labelStyle: TextStyle(color: MyConstants.secondaryColor),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: MyConstants.secondaryColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: MyConstants.secondaryColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(
-                          color: MyConstants.secondaryColor, width: 2),
-                    ),
-                  ),
-                  items: const ['Poor', 'Well']
-                      .map((e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e,
-                        style: TextStyle(
-                            color: MyConstants.secondaryColor)),
-                  ))
-                      .toList(),
-                  onChanged: (value) => selectedLighting = value,
-                  icon: Icon(Icons.arrow_drop_down,
-                      color: MyConstants.secondaryColor),
-                  borderRadius: BorderRadius.circular(10),
-                  focusColor: MyConstants.primaryColor.withAlpha(80),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancel',
-                    style: TextStyle(
-                        color: MyConstants.secondaryColor,
-                        fontWeight: FontWeight.bold)),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (selectedDangerTag != null && selectedLighting != null) {
-                    _addFlaggedZone(
-                      position: position,
-                      icon: icon,
-                      dangerTag: selectedDangerTag!,
-                      lighting: selectedLighting!,
-                    );
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text('Confirm',
-                    style: TextStyle(
-                        color: MyConstants.secondaryColor,
-                        fontWeight: FontWeight.bold)),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-  void _addFlaggedZone({
-    required LatLng position,
-    required BitmapDescriptor icon,
-    required String dangerTag,
-    required String lighting,
-  }) {
-    final newZone = Zone(
-      id: 'flagged_${DateTime.now().millisecondsSinceEpoch}',
-      center: position,
-      radius: 0,
-      dangerLevel: 0,
-      type: ZoneType.flagged,
-      count: 1,
-      dangerTag: dangerTag,
-      lighting: lighting,
-    );
-
-    _flaggedZones[newZone.id] = newZone;
-    _zones.add(newZone);
-
-    _markers.add(Marker(
-      markerId: MarkerId(newZone.id),
-      position: position,
-      icon: icon,
-      infoWindow: InfoWindow(
-        title: 'Danger: $dangerTag',
-        snippet: 'Lighting: $lighting',
-      ),
-    ));
-
-    notifyListeners();
-  }
-
-
-  void onMapLongPress(LatLng latLng, BitmapDescriptor bitmapDescriptor) {
-    final newZone = Zone(
-      id: 'flagged_${DateTime.now().millisecondsSinceEpoch}',
-      center: latLng,
-      radius: 0,
-      dangerLevel: 0,
-      type: ZoneType.flagged,
-      count: 1,
-    );
-    _zones.add(newZone);
-    _markers.add(Marker(
-      markerId: MarkerId(newZone.id),
-      position: latLng,
-      icon: bitmapDescriptor,
-      infoWindow: const InfoWindow(title: "Custom Dropped Pin"),
-    ));
-    notifyListeners();
-  }
-
-  void snoozeAlert() {
-    _isWarningActive = false;
-    _notifiedZones.clear();
-    _notifiedZoneId = "";
-    notifyListeners();
-  }
-
-  Future<void> centerOnZone(Zone zone) async {
-    if (!_mapController.isCompleted) return;
-    final controller = await _mapController.future;
-    await controller.animateCamera(
-      CameraUpdate.newLatLngZoom(zone.center, 18),
+  double _calculateDistance(LatLng point1, LatLng point2) {
+    return Geolocator.distanceBetween(
+      point1.latitude, point1.longitude,
+      point2.latitude, point2.longitude,
     );
   }
 }

@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:safezones/providers/settings_provider.dart';
+import 'package:safezones/providers/map_provider.dart';
+import 'package:safezones/models/zone_model.dart' as custom;
 
 class WarningNotification extends StatelessWidget {
   final String message;
@@ -38,7 +42,7 @@ class WarningNotification extends StatelessWidget {
                 color: Colors.black26,
                 blurRadius: 8,
                 offset: Offset(0, 3),
-              )
+              ),
             ],
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -100,25 +104,25 @@ class WarningNotification extends StatelessWidget {
 class NotificationManager {
   static OverlayEntry? _currentNotification;
   static Timer? _snoozeTimer;
-  static Map<String, DateTime> _snoozedNotifications = {};
+  static final Map<String, DateTime> _snoozedNotifications = {};
   static const int _snoozeMinutes = 3;
   static final AudioPlayer _audioPlayer = AudioPlayer();
 
   static bool get isShowing => _currentNotification != null;
 
   static void show(
-    BuildContext context, {
-    required String message,
-    Color color = Colors.red,
-    VoidCallback? onTap,
-    VoidCallback? onSnooze,
-  }) {
-    if (_snoozedNotifications.containsKey(message)) {
-      DateTime snoozeEndTime = _snoozedNotifications[message]!;
+      BuildContext context, {
+        required String message,
+        Color color = Colors.red,
+        required String zoneId,
+        VoidCallback? onSnooze,
+      }) {
+    if (_snoozedNotifications.containsKey(zoneId)) {
+      DateTime snoozeEndTime = _snoozedNotifications[zoneId]!;
       if (DateTime.now().isBefore(snoozeEndTime)) {
         return;
       } else {
-        _snoozedNotifications.remove(message);
+        _snoozedNotifications.remove(zoneId);
       }
     }
 
@@ -130,19 +134,15 @@ class NotificationManager {
 
     void snoozeAction() {
       _audioPlayer.stop();
-
       hide();
 
-      _snoozedNotifications[message] =
-          DateTime.now().add(Duration(minutes: _snoozeMinutes));
+      _snoozedNotifications[zoneId] =
+          DateTime.now().add(const Duration(minutes: _snoozeMinutes));
 
       _snoozeTimer?.cancel();
-
-      _snoozeTimer = Timer(Duration(minutes: _snoozeMinutes), () {
-        if (_snoozedNotifications.containsKey(message)) {
-          _snoozedNotifications.remove(message);
-          show(context,
-              message: message, color: color, onTap: onTap, onSnooze: onSnooze);
+      _snoozeTimer = Timer(const Duration(minutes: _snoozeMinutes), () {
+        if (_snoozedNotifications.containsKey(zoneId)) {
+          _snoozedNotifications.remove(zoneId);
         }
       });
 
@@ -162,8 +162,21 @@ class NotificationManager {
                 message: message,
                 color: color,
                 onTap: () {
-                  onTap?.call();
-                  hide();
+                  final mapProvider = Provider.of<MapProvider>(context, listen: false);
+                  final zone = mapProvider.zones.firstWhere(
+                        (z) => z.id == zoneId,
+                    orElse: () => custom.Zone(
+                      id: '',
+                      center: const LatLng(0, 0),
+                      radius: 0,
+                      dangerLevel: 0,
+                      type: custom.ZoneType.flag,
+                      count: 0,
+                    ),
+                  );
+                  if (zone.id.isNotEmpty) {
+                    mapProvider.centerOnZone(zone, custom.ZoneType.flag);
+                  }
                 },
                 onSnooze: snoozeAction,
               ),
@@ -173,10 +186,11 @@ class NotificationManager {
       ),
     );
 
-    Overlay.of(context)?.insert(_currentNotification!);
+    Overlay.of(context).insert(_currentNotification!);
   }
 
   static void hide() {
+    _audioPlayer.stop();
     _currentNotification?.remove();
     _currentNotification = null;
   }
@@ -185,5 +199,6 @@ class NotificationManager {
     hide();
     _snoozeTimer?.cancel();
     _snoozedNotifications.clear();
+    _audioPlayer.dispose();
   }
 }

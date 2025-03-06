@@ -143,7 +143,7 @@ class _AlertsPanelState extends State<AlertsPanel>
                         itemBuilder: (context, index) {
                           final zone = nearbyZones[index];
                           return _buildAlertItem(
-                            zone.type == ZoneType.flagged
+                            zone.type == ZoneType.flag
                                 ? "Flagged Zone"
                                 : "Danger Zone",
                             "${(Geolocator.distanceBetween(
@@ -153,7 +153,7 @@ class _AlertsPanelState extends State<AlertsPanel>
                                 zone.center.longitude) /
                                 1000)
                                 .toStringAsFixed(1)} km away",
-                            zone.type == ZoneType.flagged
+                            zone.type == ZoneType.flag
                                 ? Colors.amber
                                 : Colors.redAccent,
                             onTap: () => widget.onZoneSelected?.call(zone),
@@ -203,9 +203,8 @@ class _AlertsPanelState extends State<AlertsPanel>
                   if (cameraPos != null) {
                     mapProvider.handleMapLongPress(
                       cameraPos.target,
-                      widget.customPinIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                       context,
-                      MyConstants(),
+                      icon: widget.customPinIcon,
                     );
                   }
                 },

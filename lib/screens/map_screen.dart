@@ -7,7 +7,7 @@ import 'package:safezones/utils/constants.dart';
 import 'package:safezones/utils/map_config.dart';
 import 'package:safezones/widgets/top_panel.dart';
 import '../providers/map_provider.dart';
-import '../models/zone_model.dart';
+import '../models/zone_model.dart' as custom;
 import 'package:safezones/widgets/alert_panel.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/warning.dart';
@@ -35,12 +35,12 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadCustomMarkers() async {
-    final userIcon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(35, 35)),
+    final userIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(125, 125)),
       'assets/avatars/3d-map_2.png',
     );
-    final pinIcon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(20, 20)),
+    final pinIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(100, 100)),
       'assets/avatars/3d-map.png',
     );
     setState(() {
@@ -70,26 +70,10 @@ class _MapScreenState extends State<MapScreen> {
           context,
           message: warningMessage,
           color: Colors.red,
-          onTap: () {
-            final zone = mapProvider.zones.firstWhere(
-                  (z) => z.id == mapProvider.notifiedZoneId,
-              orElse: () => Zone(
-                id: '',
-                center: const LatLng(0, 0),
-                radius: 0,
-                dangerLevel: 0,
-                type: ZoneType.flagged,
-                count: 0,
-              ),
-            );
-            if (zone.id.isNotEmpty) {
-              mapProvider.centerOnZone(zone);
-            }
-            NotificationManager.hide();
-          },
           onSnooze: () {
             mapProvider.snoozeAlert();
           },
+          zoneId: mapProvider.notifiedZoneId,
         );
       } else if (!mapProvider.isWarningActive && NotificationManager.isShowing) {
         NotificationManager.hide();
@@ -113,8 +97,8 @@ class _MapScreenState extends State<MapScreen> {
               style: MapConfig.mapStyle,
               initialCameraPosition: CameraPosition(
                 target: LatLng(
-                  mapProvider.currentPosition!.latitude,
-                  mapProvider.currentPosition!.longitude,
+                  mapProvider.currentPosition?.latitude ?? 0.0,
+                  mapProvider.currentPosition?.longitude ?? 0.0,
                 ),
                 zoom: 19,
                 tilt: 60.0,
@@ -143,14 +127,7 @@ class _MapScreenState extends State<MapScreen> {
                 mapProvider.setMapController(controller);
               },
               onLongPress: (LatLng latLng) {
-                if (customPinIcon != null) {
-                  mapProvider.handleMapLongPress(
-                    latLng,
-                    customPinIcon!,
-                    context,
-                    MyConstants(),
-                  );
-                }
+                mapProvider.handleMapLongPress(latLng, context);
               },
             ),
             Positioned(
@@ -166,7 +143,7 @@ class _MapScreenState extends State<MapScreen> {
               child: AlertsPanel(
                 userLocation: mapProvider.currentPosition,
                 dangerZones: mapProvider.zones,
-                onZoneSelected: (Zone zone) => mapProvider.centerOnZone(zone),
+                onZoneSelected: (custom.Zone zone) => mapProvider.centerOnZone(zone, zone.type),
                 customPinIcon: customPinIcon,
               ),
             ),

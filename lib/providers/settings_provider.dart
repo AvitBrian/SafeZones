@@ -5,30 +5,27 @@ class SettingsProvider extends ChangeNotifier {
   bool _locationTracking = true;
   double _alertRadius = 300;
   bool _soundAlertsEnabled = true;
+
   bool get locationTracking => _locationTracking;
   double get alertRadius => _alertRadius;
   bool get soundAlertsEnabled => _soundAlertsEnabled;
+
   SettingsProvider() {
     _checkLocationPermission();
   }
 
   Future<void> _checkLocationPermission() async {
     final status = await Permission.location.status;
-    if (!status.isGranted) {
-      final result = await Permission.location.request();
-      _locationTracking = result.isGranted;
-    } else {
-      _locationTracking = true;
-    }
+    _locationTracking = status.isGranted;
     notifyListeners();
   }
 
   Future<void> setLocationTracking(bool value) async {
-    if (value) {
+    if (value && !_locationTracking) {
       final status = await Permission.location.request();
       _locationTracking = status.isGranted;
     } else {
-      _locationTracking = false;
+      _locationTracking = value;
     }
     notifyListeners();
   }
@@ -38,7 +35,6 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // New setter for sound alerts
   void setSoundAlertsEnabled(bool value) {
     _soundAlertsEnabled = value;
     notifyListeners();
