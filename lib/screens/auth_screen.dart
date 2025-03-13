@@ -15,7 +15,7 @@ class AuthScreen extends StatelessWidget {
       statusBarColor: MyConstants.backgroundColor,
       systemNavigationBarColor: MyConstants.backgroundColor,
       systemNavigationBarIconBrightness: Brightness.dark,
-      statusBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.light,
     ));
 
     final authService = Provider.of<AuthService>(context);
@@ -45,47 +45,49 @@ class AuthScreen extends StatelessWidget {
                   width: MyConstants.screenWidth(context),
                   child: authService.showSignIn
                       ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Not a Member?",
-                        style: TextStyle(color: MyConstants.subtextColor),
-                      ),
-                      TextButton(
-                        onPressed: authService.toggleAuthState,
-                        style: ButtonStyle(
-                          overlayColor: WidgetStateProperty.all(
-                              Colors.transparent),
-                        ),
-                        child: Text(
-                          "Register",
-                          style: TextStyle(
-                              color: MyConstants.primaryColor.withAlpha(120)),
-                        ),
-                      ),
-                    ],
-                  )
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Not a Member?",
+                              style: TextStyle(color: MyConstants.subtextColor),
+                            ),
+                            TextButton(
+                              onPressed: authService.toggleAuthState,
+                              style: ButtonStyle(
+                                overlayColor:
+                                    WidgetStateProperty.all(Colors.transparent),
+                              ),
+                              child: Text(
+                                "Register",
+                                style: TextStyle(
+                                    color: MyConstants.primaryColor
+                                        .withAlpha(250)),
+                              ),
+                            ),
+                          ],
+                        )
                       : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Already a member?",
-                        style: TextStyle(color: MyConstants.subtextColor),
-                      ),
-                      TextButton(
-                        onPressed: authService.toggleAuthState,
-                        style: ButtonStyle(
-                          overlayColor: WidgetStateProperty.all(
-                              Colors.transparent),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Already a member?",
+                              style: TextStyle(color: MyConstants.subtextColor),
+                            ),
+                            TextButton(
+                              onPressed: authService.toggleAuthState,
+                              style: ButtonStyle(
+                                overlayColor:
+                                    WidgetStateProperty.all(Colors.transparent),
+                              ),
+                              child: Text(
+                                "Log in",
+                                style: TextStyle(
+                                    color: MyConstants.primaryColor
+                                        .withAlpha(250)),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          "Log in",
-                          style: TextStyle(
-                              color: MyConstants.primaryColor.withAlpha(120)),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ],

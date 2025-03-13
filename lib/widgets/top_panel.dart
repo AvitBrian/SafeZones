@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:safezones/utils/constants.dart';
-import 'package:safezones/providers/map_provider.dart';
 import '../pages/profile_page.dart';
 import '../pages/settings_page.dart';
 import '../utils/next_screen.dart';
@@ -23,7 +21,7 @@ class _TopBarState extends State<TopBar> with SingleTickerProviderStateMixin {
 
         // Original TopBar
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -35,44 +33,27 @@ class _TopBarState extends State<TopBar> with SingleTickerProviderStateMixin {
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  height: 40,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    color: MyConstants.primaryColor,
+                    borderRadius: MyConstants.roundness,
                   ),
-                  child: Icon(Icons.settings, color: MyConstants.primaryColor),
+                  child: const Icon(Icons.settings, color: Colors.white, size: 35,),
                 ),
               ),
-              // App Logo and Title
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Image.asset(
-                      "assets/images/logo.png",
-                      height: 60,
-                      width: 60,
-                    ),
-                  ],
-                ),
-              ),
-              // Profile Icon
+
               GestureDetector(
                 onTap: () {
                   nextScreen(context, const ProfilePage());
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  height: 40,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    color: MyConstants.primaryColor,
+                    borderRadius: MyConstants.roundness,
                   ),
-                  child: Icon(Icons.person_2_rounded, color: MyConstants.primaryColor),
+                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 35,),
                 ),
               ),
             ],

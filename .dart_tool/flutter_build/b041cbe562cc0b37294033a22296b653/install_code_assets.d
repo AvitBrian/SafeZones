@@ -1,1 +1,0 @@
- /home/kira/Code/ALU/Capstone\ /SafeZones/.dart_tool/flutter_build/b041cbe562cc0b37294033a22296b653/native_assets.json: 

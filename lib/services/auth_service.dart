@@ -93,11 +93,24 @@ class AuthService extends ChangeNotifier {
           flags: [],
           createdAt: Timestamp.now(),
           firebaseUser: _currentUser,
-        ),
-        '',
-          googleUser.photoUrl ?? '',
-          createdAt: Timestamp.now()
-        );
+        ), '', googleUser.photoUrl ?? '', createdAt: Timestamp.now());
+      } else {
+        final userDoc = await _firestore.collection('users').doc(_currentUser!.uid).get();
+        if (userDoc.exists) {
+          _userData = UserModel.fromMap(userDoc.data()!, firebaseUser: _currentUser);
+        } else {
+          await saveUserData(UserModel(
+            uid: _currentUser!.uid,
+            email: _currentUser!.email!,
+            username: googleUser.displayName ?? 'User',
+            location: '',
+            profileImageUrl: googleUser.photoUrl ?? '',
+            emailVerified: _currentUser!.emailVerified,
+            flags: [],
+            createdAt: Timestamp.now(),
+            firebaseUser: _currentUser,
+          ), '', googleUser.photoUrl ?? '', createdAt: Timestamp.now());
+        }
       }
 
       await _fetchUserData();
@@ -229,5 +242,18 @@ class AuthService extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  void updateUserLocation(String newLocation) {
+    final userId = currentUser?.uid;
+    if (userId != null) {
+      FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'location': newLocation,
+      }).then((_) {
+        _fetchUserData(); 
+      }).catchError((error) {
+        print("Failed to update location: $error");
+      });
+    }
   }
 }

@@ -11,6 +11,7 @@ class UserModel {
   final List<dynamic> flags;
   final Timestamp createdAt;
   final User? firebaseUser;
+  int flagsCount;
 
   UserModel({
     required this.uid,
@@ -22,6 +23,7 @@ class UserModel {
     required this.flags,
     required this.createdAt,
     this.firebaseUser,
+    this.flagsCount = 0,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data, {User? firebaseUser}) {
@@ -35,6 +37,7 @@ class UserModel {
       flags: List<dynamic>.from(data['flags'] ?? []),
       createdAt: data['createdAt'],
       firebaseUser: firebaseUser,
+      flagsCount: data['flagsCount'] ?? 0,
     );
   }
 
@@ -48,6 +51,7 @@ class UserModel {
       'emailVerified': emailVerified,
       'flags': flags,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'flagsCount': flagsCount,
     };
   }
 }

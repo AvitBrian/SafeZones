@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:safezones/models/zone_model.dart';
-import 'package:safezones/providers/map_provider.dart';
 import 'package:safezones/services/places_service.dart';
 
 class FirestoreService {
@@ -27,6 +26,8 @@ class FirestoreService {
         type: ZoneType.flag,
         count: data['count'] ?? 1,
         dangerTag: data['dangerTag'] ?? '',
+        policeDistance: data['policeDistance'],
+        hospitalDistance: data['hospitalDistance']
       );
     }).toList();
 
@@ -37,7 +38,7 @@ class FirestoreService {
     };
   }
 
-Future<void> addFlaggedZone(LatLng position, String dangerTag) async {
+Future<void> addFlaggedZone(LatLng position, String dangerTag, String userId) async {
     final PlacesService _placesService = PlacesService();
 
     // Calculate distances to the nearest hospital and police station
@@ -60,6 +61,15 @@ Future<void> addFlaggedZone(LatLng position, String dangerTag) async {
       'location': GeoPoint(position.latitude, position.longitude),
       'policeDistance': policeDistance,
       'hospitalDistance': hospitalDistance,
+      'userId': userId,
     });
+  }
+
+Future<int> countUserFlags(String userId) async {
+    final snapshot = await _db.collection('flaggedZones')
+        .where('userId', isEqualTo: userId)
+        .get();
+
+    return snapshot.docs.length;
   }
 }

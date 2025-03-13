@@ -25,7 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
           style: TextStyle(color: MyConstants.titleColor),
         ),
         centerTitle: true,
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: MyConstants.primaryColor,
         elevation: 0,
       ),
       body: ListView(
@@ -43,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Card(
             elevation: 0,
-            color: Colors.white,
+            color: MyConstants.tilesColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -54,7 +54,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onChanged: (value) async {
                 await settings.setLocationTracking(value);
               },
-              activeColor: Colors.deepPurple,
+              activeColor: MyConstants.primaryColor.withBlue(200),
             ),
           ),
 
@@ -71,7 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Card(
             elevation: 0,
-            color: Colors.white,
+            color: MyConstants.tilesColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -87,10 +87,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: Colors.deepPurple,
-                      inactiveTrackColor: Colors.deepPurple.withOpacity(0.2),
-                      thumbColor: Colors.deepPurple,
-                      overlayColor: Colors.deepPurple.withOpacity(0.1),
+                      activeTrackColor: MyConstants.primaryColor,
+                      inactiveTrackColor: MyConstants.primaryColor.withOpacity(0.2),
+                      thumbColor: MyConstants.primaryColor,
+                      overlayColor: MyConstants.primaryColor.withOpacity(0.1),
                     ),
                     child: Slider(
                       value: settings.alertRadius,
@@ -111,7 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   onChanged: (value) {
                     settings.setSoundAlertsEnabled(value);
                   },
-                  activeColor: Colors.deepPurple,
+                  activeColor: MyConstants.primaryColor.withBlue(200),
                 ),
               ],
             ),
@@ -130,7 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Card(
             elevation: 0,
-            color: Colors.white,
+            color: MyConstants.tilesColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -139,7 +139,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   title: Text("Privacy",
                     style:TextStyle(color:  MyConstants.subtextColor),),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 16, color: MyConstants.primaryColor,),
                   onTap: () {
                     // Navigate to privacy page
                   },
@@ -148,7 +148,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   title:  Text("About",
                     style:TextStyle(color:  MyConstants.subtextColor),),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 16, color: MyConstants.primaryColor,),
                   onTap: () {
                     // Navigate to about page
                   },
@@ -157,10 +157,34 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
 
+          const SizedBox(height: 20),
+          Card(
+            elevation: 0,
+            color: MyConstants.tilesColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListTile(
+              title: Text("Emergency Contact",
+                style: TextStyle(color: MyConstants.subtextColor),
+              ),
+              subtitle: Text(
+                settings.emergencyContact.isEmpty ? 
+                "Not set" : 
+                settings.emergencyContact,
+                style: TextStyle(color: MyConstants.subtextColor),
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.edit, color: MyConstants.primaryColor,),
+                onPressed: () => _showEmergencyContactDialog(context, settings),
+              ),
+            ),
+          ),
+
           const SizedBox(height: 24),
           Card(
             elevation: 0,
-            color: Colors.white,
+            color: Colors.red.withValues(alpha: .1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -207,6 +231,45 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         );
       },
+    );
+  }
+
+  void _showEmergencyContactDialog(BuildContext context, SettingsProvider settings) {
+    final controller = TextEditingController(text: settings.emergencyContact);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: MyConstants.primaryColor,
+        title: Text('Set Emergency Contact',
+          style: TextStyle(color: MyConstants.secondaryColor),
+        ),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: 'Phone Number',
+            labelStyle: TextStyle(color: MyConstants.secondaryColor),
+          ),
+          keyboardType: TextInputType.phone,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel',
+              style: TextStyle(color: MyConstants.secondaryColor),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              settings.setEmergencyContact(controller.text);
+              Navigator.pop(context);
+            },
+            child: Text('Save',
+              style: TextStyle(color: MyConstants.secondaryColor),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

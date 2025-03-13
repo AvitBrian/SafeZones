@@ -34,14 +34,15 @@ class MyTextField extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: width * 0.005),
       child: TextFormField(
-        style: TextStyle(color: MyConstants.textColor),
+        style: TextStyle(color: MyConstants.secondaryColor),
         decoration: InputDecoration(
           prefixIcon: icon,
           suffixIcon: suffixIcon,
           hintText: hintText,
           hintStyle: TextStyle(color: MyConstants.hintText),
           enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: MyConstants.subtextColor.withOpacity(.1)),
+            borderSide: BorderSide(
+                color: MyConstants.subtextColor.withValues(alpha: .1)),
             borderRadius: roundness ?? BorderRadius.circular(10),
           ),
           focusedBorder: OutlineInputBorder(

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,8 @@ import '../models/zone_model.dart';
 import '../providers/settings_provider.dart';
 import '../providers/map_provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../utils/snack_bar.dart';
 
 class AlertsPanel extends StatefulWidget {
   final Position? userLocation;
@@ -28,8 +32,7 @@ class AlertsPanel extends StatefulWidget {
 class _AlertsPanelState extends State<AlertsPanel>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _heightFactor;
-  bool _isExpanded = false;
+  final bool _isExpanded = false;
 
   @override
   void initState() {
@@ -38,10 +41,6 @@ class _AlertsPanelState extends State<AlertsPanel>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _heightFactor = _controller.drive(CurveTween(curve: Curves.easeInOut));
-    if (_isExpanded) {
-      _controller.value = 1.0;
-    }
   }
 
   @override
@@ -50,24 +49,227 @@ class _AlertsPanelState extends State<AlertsPanel>
     super.dispose();
   }
 
-  void _toggleExpanded() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+      child: Row(
+        children: [
+
+          Expanded(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                backgroundColor:MyConstants.primaryColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: MyConstants.roundness,
+                      ),
+                    ),
+                    onPressed: () => _showDangerZonesPanel(context),
+                    child: const FittedBox(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.warning, color: Colors.white, size: 20),
+                          SizedBox(width: 4),
+                          Text('Alerts', style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (_getNearbyZones().isNotEmpty)
+                  Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        _getNearbyZones().length.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: MyConstants.roundness,
+                ),
+              ),
+              onPressed: () => _handleEmergency(context),
+              child: const FittedBox(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.emergency, color: Colors.white, size: 20),
+                    SizedBox(width: 4),
+                    Text('SOS', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleEmergency(BuildContext context) async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    // Filter zones within alert distance.
-    final nearbyZones = widget.userLocation == null
-        ? []
-        : widget.dangerZones.where((zone) {
+    if (settings.emergencyContact.isEmpty) {
+      openSnackBar(
+        context,
+        'Please set an emergency contact in settings first',
+        Colors.red,
+      );
+      return;
+    }
+    
+    if (widget.userLocation != null) {
+      String phoneNumber = settings.emergencyContact.replaceAll(RegExp(r'[^\d]'), '');
+      if (!phoneNumber.startsWith('25')) {
+        phoneNumber = phoneNumber.startsWith('0') ? '250${phoneNumber.substring(1)}' : '250$phoneNumber';
+      }
+      
+      final message = "Hey, might be in danger! \n \nMy location: \nhttps://www.google.com/maps/search/?api=1&query=${widget.userLocation!.latitude},${widget.userLocation!.longitude}";
+      final url = Uri.parse("https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}");
+      
+      try {
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          if(context.mounted) {
+            openSnackBar(
+            context,
+            'WhatsApp is not installed',
+            Colors.red,
+          );
+          }
+        }
+      } catch (e) {
+        if(context.mounted){
+          openSnackBar(
+          context,
+          'Error launching WhatsApp: $e',
+          Colors.red,
+        );}
+      }
+    }
+  }
+
+  void _showDangerZonesPanel(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: MyConstants.primaryColor.withValues(alpha: .5),
+              borderRadius: MyConstants.roundness,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Text(
+                        "Nearby Alerts",
+                        style: TextStyle(
+                          color: MyConstants.textColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "${_getNearbyZones().length} active zones",
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Colors.white24),
+                SizedBox(
+                  height: 300,
+                  child: _getNearbyZones().isEmpty
+                      ? _buildNoAlerts()
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _getNearbyZones().length,
+                          itemBuilder: (context, index) {
+                            final zone = _getNearbyZones()[index];
+                            return _buildAlertItem(
+                              zone.type == ZoneType.flag
+                                  ? "Flagged Zone"
+                                  : "Danger Zone",
+                              "${(Geolocator.distanceBetween(
+                                widget.userLocation!.latitude,
+                                widget.userLocation!.longitude,
+                                zone.center.latitude,
+                                zone.center.longitude,
+                              ) / 1000).toStringAsFixed(1)} km away",
+                              zone.type == ZoneType.flag
+                                  ? Colors.amber
+                                  : Colors.redAccent,
+                              onTap: () {
+                                widget.onZoneSelected?.call(zone);
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  List<Zone> _getNearbyZones() {
+    if (widget.userLocation == null) return [];
+    
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    return widget.dangerZones.where((zone) {
       final distance = Geolocator.distanceBetween(
         widget.userLocation!.latitude,
         widget.userLocation!.longitude,
@@ -76,147 +278,6 @@ class _AlertsPanelState extends State<AlertsPanel>
       );
       return distance <= (settings.alertRadius + zone.radius);
     }).toList();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: MyConstants.secondaryColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Alerts header and expandable list.
-          widget.userLocation == null || widget.dangerZones.isEmpty
-              ? _buildNoAlerts()
-              : Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: _toggleExpanded,
-                child: Row(
-                  children: [
-                    AnimatedRotation(
-                      duration: const Duration(milliseconds: 200),
-                      turns: _isExpanded ? 0 : 0.5,
-                      child: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: MyConstants.primaryColor,
-                      ),
-                    ),
-                    Text(
-                      "Nearby Alerts",
-                      style: TextStyle(
-                        color: MyConstants.primaryColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "${nearbyZones.length} active zones",
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  ],
-                ),
-              ),
-              SizeTransition(
-                sizeFactor: _heightFactor,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: nearbyZones.length,
-                        itemBuilder: (context, index) {
-                          final zone = nearbyZones[index];
-                          return _buildAlertItem(
-                            zone.type == ZoneType.flag
-                                ? "Flagged Zone"
-                                : "Danger Zone",
-                            "${(Geolocator.distanceBetween(
-                                widget.userLocation!.latitude,
-                                widget.userLocation!.longitude,
-                                zone.center.latitude,
-                                zone.center.longitude) /
-                                1000)
-                                .toStringAsFixed(1)} km away",
-                            zone.type == ZoneType.flag
-                                ? Colors.amber
-                                : Colors.redAccent,
-                            onTap: () => widget.onZoneSelected?.call(zone),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: MyConstants.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () {
-                    Provider.of<MapProvider>(context, listen: false)
-                        .centerOnUser();
-                  },
-                  child: const Text("Center"),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: MyConstants.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                onPressed: () {
-                  final mapProvider = Provider.of<MapProvider>(context, listen: false);
-                  final cameraPos = mapProvider.currentCameraPosition;
-                  if (cameraPos != null) {
-                    mapProvider.handleMapLongPress(
-                      cameraPos.target,
-                      context,
-                      icon: widget.customPinIcon,
-                    );
-                  }
-                },
-                child: Text("Flag"),
-
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildNoAlerts() {
@@ -224,7 +285,7 @@ class _AlertsPanelState extends State<AlertsPanel>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: MyConstants.secondaryColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: MyConstants.roundness,
       ),
       child: const Text(
         "No nearby danger zones detected.",
@@ -242,7 +303,7 @@ class _AlertsPanelState extends State<AlertsPanel>
         child: Container(
           decoration: BoxDecoration(
             color: MyConstants.backgroundColor,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: MyConstants.roundness,
           ),
           child: Padding(
             padding: const EdgeInsets.all(8.0),

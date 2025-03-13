@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 extension on List<LatLng> {
   double calculateSpread() {
     if (length <= 1) return 0;
-
     double maxDistance = 0;
     for (int i = 0; i < length; i++) {
       for (int j = i + 1; j < length; j++) {
@@ -49,8 +48,8 @@ class Zone {
       center: LatLng(data['latitude'], data['longitude']),
       type: ZoneType.flag,
       dangerTag: data['dangerTag'],
-      policeDistance: data['policeDistance']?.toDouble(),
-      hospitalDistance: data['hospitalDistance']?.toDouble(),
+      policeDistance: data['policeDistance']?.toInt(),
+      hospitalDistance: data['hospitalDistance']?.toInt(),
     );
   }
 

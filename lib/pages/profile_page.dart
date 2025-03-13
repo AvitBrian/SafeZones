@@ -3,23 +3,30 @@ import 'package:provider/provider.dart';
 import 'package:safezones/screens/auth_screen.dart';
 import 'package:safezones/utils/constants.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../utils/next_screen.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
   Widget build(BuildContext context) {
-    final authProvider = context.read<AuthService>();
+    final authProvider = context.watch<AuthService>();
     final user = authProvider.currentUser;
     final userData = authProvider.userData;
+    String userId = user?.uid ?? '';
 
     return Scaffold(
       backgroundColor: MyConstants.backgroundColor,
       appBar: AppBar(
         title: Text("Profile", style: TextStyle(color: MyConstants.titleColor)),
         centerTitle: true,
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: MyConstants.primaryColor,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -57,11 +64,14 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                userData?.location ?? "Location not set",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: MyConstants.subtextColor,
+              TextButton(
+                onPressed: () => _updateLocation(context, authProvider),
+                child: Text(
+                  userData?.location.isNotEmpty == true ? userData!.location : "Set Location",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: MyConstants.subtextColor,
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -69,7 +79,7 @@ class ProfilePage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple[50],
+                  color: Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -83,11 +93,26 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatItem("Flags Raised", userData?.flags?.length.toString() ?? "0"),
-                      ],
+                    FutureBuilder<int>(
+                      future: FirestoreService().countUserFlags(userId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+
+                        if (snapshot.hasError) {
+                          return Center(child: Text('Error: ${snapshot.error}'));
+                        }
+
+                        int flagCount = snapshot.data ?? 0;
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildStatItem("Flags Raised", flagCount.toString()),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -123,24 +148,17 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
+  Widget _buildStatItem(String title, String value) {
     return Column(
       children: [
         Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            color: Colors.red,
-            fontWeight: FontWeight.bold,
-          ),
+          title,
+          style: const TextStyle(fontSize: 16, color: Colors.white70),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            color: MyConstants.subtextColor,
-          ),
+          value,
+          style: TextStyle(color: MyConstants.primaryColor,fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -151,5 +169,38 @@ class ProfilePage extends StatelessWidget {
     Future.delayed(const Duration(milliseconds: 500)).then((value) {
       nextScreenReplacement(context, const AuthScreen());
     });
+  }
+
+  void _updateLocation(BuildContext context, AuthService authProvider) {
+    TextEditingController locationController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Update Location"),
+          content: TextField(
+            controller: locationController,
+            decoration: const InputDecoration(hintText: "Enter new location"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                String newLocation = locationController.text.trim();
+                if (newLocation.isNotEmpty) {
+                  authProvider.updateUserLocation(newLocation);
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text("Update"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

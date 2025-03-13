@@ -22,9 +22,9 @@ class SignInForm extends StatefulWidget {
 class _SignInFormState extends State<SignInForm>
     with SingleTickerProviderStateMixin {
   // Variables
-  bool _isLoadingGoogle = false;
-  bool _isLoginSuccessfull = false;
-  bool _isLoading = false;
+  final bool _isLoadingGoogle = false;
+  final bool _isLoginSuccessfull = false;
+  final bool _isLoading = false;
   bool dev_mode = false;
 
   // Controllers
@@ -74,7 +74,8 @@ class _SignInFormState extends State<SignInForm>
       if (user != null) {
         handleAfterLogin();
       } else {
-        openSnackBar(context, authProvider.errorMessage ?? "Sign in failed", Colors.red);
+        openSnackBar(
+            context, authProvider.errorMessage ?? "Sign in failed", Colors.red);
       }
     }
 
@@ -96,46 +97,58 @@ class _SignInFormState extends State<SignInForm>
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          SizedBox(height: screenHeight*.03),
+          SizedBox(height: screenHeight * .03),
           SizedBox(
             height: 135,
             child: Image.asset(
               'assets/images/logo-long.png',
               height: 100,
-              width: screenWidth*.8,
+              width: screenWidth * .8,
               fit: BoxFit.fitWidth,
             ),
           ),
-          SizedBox(height: screenHeight*.05),
+          SizedBox(height: screenHeight * .05),
           Align(
-            alignment: Alignment.centerLeft,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Hi there!",
-                  style: TextStyle(
-                    color: MyConstants.textColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 40
-                  ),),
-                const SizedBox(height: 2,),
-                Text("Welcome Back, you've been missed...",
-                  style: TextStyle(color: MyConstants.textColor),),
-                Text('Sign in to continue',
-                  style: TextStyle(color: MyConstants.textColor),)
-              ],
-            )
-            ),
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Hi there!",
+                    style: TextStyle(
+                        color: MyConstants.textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 40),
+                  ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                  Text(
+                    "Welcome Back, you've been missed...",
+                    style: TextStyle(color: MyConstants.textColor),
+                  ),
+                  Text(
+                    'Sign in to continue',
+                    style: TextStyle(color: MyConstants.textColor),
+                  )
+                ],
+              )),
           const SizedBox(height: 8.0),
           MyTextField(
             hintText: "Email",
-            icon: const Icon(Icons.email_outlined,),
+            icon: Icon(
+              Icons.email_outlined,
+              color: MyConstants.primaryColor,
+            ),
             controller: emailController,
           ),
           const SizedBox(height: 16.0),
           MyTextField(
             hintText: "Password",
-            icon: Icon(Icons.lock_outline),
+            icon: Icon(
+              Icons.lock_outline,
+              color: MyConstants.primaryColor,
+            ),
             controller: passwordController,
             obscureText: true,
           ),
@@ -143,12 +156,15 @@ class _SignInFormState extends State<SignInForm>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: (){},
+                onPressed: () {},
                 style: ButtonStyle(
-                  overlayColor: WidgetStateProperty.all(
-                      Colors.transparent),
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
                 ),
-                child: Text("forgot password?", style: TextStyle(color: MyConstants.primaryColor.withAlpha(120)),),
+                child: Text(
+                  "forgot password?",
+                  style:
+                      TextStyle(color: MyConstants.primaryColor.withBlue(180)),
+                ),
               ),
             ],
           ),
@@ -157,7 +173,7 @@ class _SignInFormState extends State<SignInForm>
               MyButton(
                 label: "Sign In",
                 onTap: handleEmailAndPasswordSignIn,
-                width: screenWidth*.88,
+                width: screenWidth * .88,
                 height: 60,
               ),
               Visibility(
@@ -185,20 +201,21 @@ class _SignInFormState extends State<SignInForm>
               Expanded(
                 child: Divider(
                   thickness: 0.5,
-                  color: MyConstants.primaryColor.withOpacity(.5),
+                  color: MyConstants.primaryColor.withValues(alpha: .5),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
                   "or Sign in with",
-                  style: TextStyle(color: MyConstants.primaryColor.withOpacity(.5)),
+                  style: TextStyle(
+                      color: MyConstants.subtextColor.withValues(alpha: .3)),
                 ),
               ),
               Expanded(
                 child: Divider(
                   thickness: 0.5,
-                  color: MyConstants.primaryColor.withOpacity(.5),
+                  color: MyConstants.primaryColor.withValues(alpha: .9),
                 ),
               ),
             ],
@@ -211,10 +228,10 @@ class _SignInFormState extends State<SignInForm>
                 children: [
                   GestureDetector(
                     onTap: handleGoogleSignIn,
-                    child:  MyContainer(
+                    child: MyContainer(
                       image: "assets/images/google.png",
                       height: 40,
-                      width: screenWidth*.83,
+                      width: screenWidth * .83,
                       fill: MyConstants.primaryColor.withAlpha(20),
                       color: MyConstants.primaryColor.withAlpha(120),
                     ),
@@ -227,7 +244,7 @@ class _SignInFormState extends State<SignInForm>
                         color: MyConstants.subtextColor.withAlpha(200),
                       ),
                       height: 59,
-                      width:  screenWidth*.88,
+                      width: screenWidth * .88,
                       child: const Center(
                         child: CircularProgressIndicator(
                           color: Colors.amber,
@@ -245,9 +262,17 @@ class _SignInFormState extends State<SignInForm>
     );
   }
 
-  void handleAfterLogin() {
-    Future.delayed(const Duration(milliseconds: 1000)).then((value) {
+  void handleAfterLogin() async {
+    if (!mounted) return;
+
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+
       nextScreenReplacement(context, const MapScreen());
-    });
+    } catch (e) {
+      if (!mounted) return;
+      openSnackBar(context, "An error occurred", Colors.red);
+    }
   }
 }
