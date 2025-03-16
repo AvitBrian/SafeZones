@@ -66,10 +66,13 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final mapProvider = Provider.of<MapProvider>(context);
+    final settings = Provider.of<SettingsProvider>(context);
+    final backgroundColor = MyConstants.getBackgroundColor(settings.darkMode);
+    final textColor = MyConstants.getTextColor(settings.darkMode);
 
     if (mapProvider.currentPosition == null && !mapProvider.isLoading) {
       return Scaffold(
-        backgroundColor: MyConstants.primaryColor,
+        backgroundColor: backgroundColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -84,6 +87,7 @@ class _MapScreenState extends State<MapScreen> {
                   final settings =
                       Provider.of<SettingsProvider>(context, listen: false);
                   mapProvider.checkLocationPermissions(settings, context);
+                  setState(() {});
                 },
                 child: const Text('Retry'),
               ),
@@ -94,9 +98,9 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: MyConstants.primaryColor,
-      statusBarIconBrightness: Brightness.light,
-    ));
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: MyConstants.secondaryColor.withBlue(110)));
 
     final warningMessage = mapProvider.isInDangerZone
         ? "You are in a danger zone!"
@@ -136,7 +140,9 @@ class _MapScreenState extends State<MapScreen> {
                 : Consumer2<MapProvider, SettingsProvider>(
                     builder: (context, mapProvider, settings, child) {
                       return GoogleMap(
-                        style: MapConfig.mapStyleDark,
+                        style: settings.darkMode
+                            ? MapConfig.mapStyleDark
+                            : MapConfig.mapStyle,
                         initialCameraPosition: CameraPosition(
                           target: LatLng(
                             mapProvider.currentPosition?.latitude ?? 0.0,
@@ -176,7 +182,30 @@ class _MapScreenState extends State<MapScreen> {
                     },
                   ),
             Positioned(
-              top: MediaQuery.of(context).padding.top,
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: MyConstants.screenHeight(context) * .25,
+                width: MyConstants.screenWidth(context),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      MyConstants.secondaryColor.withValues(alpha: 1.0),
+                      MyConstants.secondaryColor.withValues(alpha: 0.8),
+                      MyConstants.secondaryColor.withValues(alpha: 0.3),
+                      MyConstants.secondaryColor.withValues(alpha: 0.2),
+                      MyConstants.secondaryColor.withValues(alpha: 0.1),
+                      MyConstants.secondaryColor.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 5,
               left: 0,
               right: 0,
               child: const TopBar(),
@@ -205,11 +234,39 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
             Positioned(
-              bottom: MyConstants.screenHeight(context) * .225,
+              bottom: MyConstants.screenHeight(context) * .300,
               left: MyConstants.screenWidth(context) * .82,
               right: MyConstants.screenWidth(context) * .03,
               child: FloatingActionButton(
                   backgroundColor: MyConstants.primaryColor,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: MyConstants.roundness,
+                      side: BorderSide(
+                        color: MyConstants.secondaryColor,
+                        width: .9,
+                      )),
+                  onPressed: () {
+                    mapProvider.centerOnUser();
+                  },
+                  elevation: 0,
+                  child: SizedBox(
+                      height: 35,
+                      width: 35,
+                      child: Image.asset('assets/images/ai.png'))),
+            ),
+            Positioned(
+              bottom: MyConstants.screenHeight(context) * .230,
+              left: MyConstants.screenWidth(context) * .82,
+              right: MyConstants.screenWidth(context) * .03,
+              child: FloatingActionButton(
+                  heroTag: null,
+                  backgroundColor: MyConstants.primaryColor,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: MyConstants.roundness,
+                      side: BorderSide(
+                        color: MyConstants.secondaryColor,
+                        width: .9,
+                      )),
                   onPressed: () {
                     mapProvider.centerOnUser();
                   },
@@ -235,6 +292,7 @@ class _MapScreenState extends State<MapScreen> {
                     onZoneSelected: (custom.Zone zone) =>
                         mapProvider.centerOnZone(zone, zone.type),
                     customPinIcon: customPinIcon,
+                    color: MyConstants.primaryColor,
                   ),
                 ),
                 AlertsCarousel(

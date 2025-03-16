@@ -12,23 +12,18 @@ class TopBar extends StatefulWidget {
 }
 
 class _TopBarState extends State<TopBar> with SingleTickerProviderStateMixin {
-
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-
-        // Original TopBar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Settings Icon
               GestureDetector(
                 onTap: () {
-                  // Navigate to the Settings Page
                   nextScreen(context, const SettingsPage());
                 },
                 child: Container(
@@ -37,11 +32,16 @@ class _TopBarState extends State<TopBar> with SingleTickerProviderStateMixin {
                   decoration: BoxDecoration(
                     color: MyConstants.primaryColor,
                     borderRadius: MyConstants.roundness,
+                    border: Border.all(
+                        width: .9, color: MyConstants.secondaryColor),
                   ),
-                  child: const Icon(Icons.settings, color: Colors.white, size: 35,),
+                  child: const Icon(
+                    Icons.settings,
+                    color: Colors.white,
+                    size: 35,
+                  ),
                 ),
               ),
-
               GestureDetector(
                 onTap: () {
                   nextScreen(context, const ProfilePage());
@@ -52,8 +52,14 @@ class _TopBarState extends State<TopBar> with SingleTickerProviderStateMixin {
                   decoration: BoxDecoration(
                     color: MyConstants.primaryColor,
                     borderRadius: MyConstants.roundness,
+                    border: Border.all(
+                        width: .9, color: MyConstants.secondaryColor),
                   ),
-                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 35,),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    color: Colors.white,
+                    size: 35,
+                  ),
                 ),
               ),
             ],

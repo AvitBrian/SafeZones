@@ -55,6 +55,9 @@ dependencies:
   shared_preferences: ^2.5.2
   url_launcher: ^6.3.1
   google_api_availability: ^5.0.1
+  osm_nominatim: ^3.0.1
+  latlong2: ^0.9.1
+  carousel_slider: ^5.0.0
 
 dev_dependencies:
   flutter_test:

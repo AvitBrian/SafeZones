@@ -26,8 +26,12 @@ class Zone {
   final ZoneType type;
   final int count;
   final String? dangerTag;
+  final String? timeOfDay;
   final double? policeDistance;
   final double? hospitalDistance;
+  final double? buildingDistance;
+  final double? roadDistance;
+  final Map<String, dynamic>? weatherData;
 
   Zone({
     required this.id,
@@ -37,9 +41,45 @@ class Zone {
     this.dangerLevel = 0,
     this.count = 1,
     this.dangerTag,
+    this.timeOfDay,
     this.policeDistance,
     this.hospitalDistance,
+    this.buildingDistance,
+    this.roadDistance,
+    this.weatherData,
   });
+
+  Zone copyWith({
+    String? id,
+    LatLng? center,
+    double? radius,
+    double? dangerLevel,
+    ZoneType? type,
+    int? count,
+    String? dangerTag,
+    String? timeOfDay,
+    double? policeDistance,
+    double? hospitalDistance,
+    double? buildingDistance,
+    double? roadDistance,
+    Map<String, dynamic>? weatherData,
+  }) {
+    return Zone(
+      id: id ?? this.id,
+      center: center ?? this.center,
+      radius: radius ?? this.radius,
+      dangerLevel: dangerLevel ?? this.dangerLevel,
+      type: type ?? this.type,
+      count: count ?? this.count,
+      dangerTag: dangerTag ?? this.dangerTag,
+      timeOfDay: timeOfDay ?? this.timeOfDay,
+      policeDistance: policeDistance ?? this.policeDistance,
+      hospitalDistance: hospitalDistance ?? this.hospitalDistance,
+      buildingDistance: buildingDistance ?? this.buildingDistance,
+      roadDistance: roadDistance ?? this.roadDistance,
+      weatherData: weatherData ?? this.weatherData,
+    );
+  }
 
   factory Zone.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -48,8 +88,12 @@ class Zone {
       center: LatLng(data['latitude'], data['longitude']),
       type: ZoneType.flag,
       dangerTag: data['dangerTag'],
-      policeDistance: data['policeDistance']?.toInt(),
-      hospitalDistance: data['hospitalDistance']?.toInt(),
+      timeOfDay: data['timeOfDay'],
+      policeDistance: data['policeDistance']?.toDouble(),
+      hospitalDistance: data['hospitalDistance']?.toDouble(),
+      buildingDistance: data['buildingDistance']?.toDouble(),
+      roadDistance: data['roadDistance']?.toDouble(),
+      weatherData: data['weatherData'],
     );
   }
 
@@ -205,5 +249,25 @@ class Zone {
     if (spread < 1000) return 500.0;
     if (spread < 2000) return 750.0;
     return 1000.0;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'center': {
+        'latitude': center.latitude,
+        'longitude': center.longitude,
+      },
+      'type': type.toString(),
+      'dangerTag': dangerTag,
+      'timeOfDay': timeOfDay,
+      'policeDistance': policeDistance,
+      'hospitalDistance': hospitalDistance,
+      'buildingDistance': buildingDistance,
+      'roadDistance': roadDistance,
+      'radius': radius,
+      'dangerLevel': dangerLevel,
+      'count': count,
+    };
   }
 }

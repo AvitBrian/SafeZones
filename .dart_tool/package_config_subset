@@ -46,6 +46,10 @@ boolean_selector
 3.1
 file:///home/kira/.pub-cache/hosted/pub.dev/boolean_selector-2.1.2/
 file:///home/kira/.pub-cache/hosted/pub.dev/boolean_selector-2.1.2/lib/
+carousel_slider
+2.12
+file:///home/kira/.pub-cache/hosted/pub.dev/carousel_slider-5.0.0/
+file:///home/kira/.pub-cache/hosted/pub.dev/carousel_slider-5.0.0/lib/
 characters
 3.4
 file:///home/kira/.pub-cache/hosted/pub.dev/characters-1.4.0/
@@ -258,6 +262,14 @@ http_parser
 3.4
 file:///home/kira/.pub-cache/hosted/pub.dev/http_parser-4.1.2/
 file:///home/kira/.pub-cache/hosted/pub.dev/http_parser-4.1.2/lib/
+intl
+3.3
+file:///home/kira/.pub-cache/hosted/pub.dev/intl-0.20.2/
+file:///home/kira/.pub-cache/hosted/pub.dev/intl-0.20.2/lib/
+latlong2
+3.0
+file:///home/kira/.pub-cache/hosted/pub.dev/latlong2-0.9.1/
+file:///home/kira/.pub-cache/hosted/pub.dev/latlong2-0.9.1/lib/
 leak_tracker
 3.2
 file:///home/kira/.pub-cache/hosted/pub.dev/leak_tracker-10.0.8/
@@ -298,6 +310,10 @@ nm
 2.12
 file:///home/kira/.pub-cache/hosted/pub.dev/nm-0.5.0/
 file:///home/kira/.pub-cache/hosted/pub.dev/nm-0.5.0/lib/
+osm_nominatim
+3.0
+file:///home/kira/.pub-cache/hosted/pub.dev/osm_nominatim-3.0.1/
+file:///home/kira/.pub-cache/hosted/pub.dev/osm_nominatim-3.0.1/lib/
 path
 3.4
 file:///home/kira/.pub-cache/hosted/pub.dev/path-1.9.1/

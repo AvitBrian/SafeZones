@@ -13,12 +13,16 @@ import 'package:safezones/services/firestore_service.dart';
 import 'package:provider/provider.dart';
 import 'package:safezones/services/auth_service.dart';
 import 'package:flutter/foundation.dart';
+import '../services/osm_service.dart';
+import '../services/weather_service.dart';
 
 class MapProvider with ChangeNotifier {
   final PlacesService _placesService = PlacesService();
   final Map<String, Zone> _flaggedZones = {};
   final Completer<GoogleMapController> _mapController = Completer();
   final FirestoreService _firestoreService = FirestoreService();
+  final OsmService _osmService = OsmService();
+  final WeatherService _weatherService = WeatherService();
 
   Set<Circle> _circles = {};
   Set<Marker> _markers = {};
@@ -191,7 +195,9 @@ class MapProvider with ChangeNotifier {
 
     _flaggedZones.clear();
     for (var zone in fetchedZones) {
-      _flaggedZones[zone.id] = zone;
+      final weatherData = await _weatherService.fetchWeather(
+          zone.center.latitude, zone.center.longitude);
+      _flaggedZones[zone.id] = zone.copyWith(weatherData: weatherData);
     }
 
     await _reclusterZones(SettingsProvider());
@@ -378,7 +384,7 @@ class MapProvider with ChangeNotifier {
   }
 
   Future<void> updateNearestFacilityDistances(Zone zone) async {
-    /// sets distance from flagged zone to nearest policy or health facility.
+    /// Sets distance from flagged zone to nearest facilities
     final hospitalDistance = await _placesService.getDistanceToClosestPlace(
       latitude: zone.center.latitude,
       longitude: zone.center.longitude,
@@ -391,6 +397,17 @@ class MapProvider with ChangeNotifier {
       type: 'police',
     );
 
+    // Add OSM distance calculations
+    final buildingDistance = await _osmService.getDistanceToNearestBuilding(
+      zone.center.latitude,
+      zone.center.longitude,
+    );
+
+    final roadDistance = await _osmService.getDistanceToNearestRoad(
+      zone.center.latitude,
+      zone.center.longitude,
+    );
+
     final updatedZone = Zone(
       id: zone.id,
       center: zone.center,
@@ -398,6 +415,8 @@ class MapProvider with ChangeNotifier {
       dangerTag: zone.dangerTag,
       policeDistance: policeDistance,
       hospitalDistance: hospitalDistance,
+      buildingDistance: buildingDistance,
+      roadDistance: roadDistance,
       radius: zone.radius,
       dangerLevel: zone.dangerLevel,
       count: zone.count,
@@ -439,17 +458,61 @@ class MapProvider with ChangeNotifier {
       return;
     }
 
-    // Calculates distances to the nearest hospital and police station
-    final policeDistance = await _placesService.getDistanceToClosestPlace(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      type: 'police',
-    );
-    final hospitalDistance = await _placesService.getDistanceToClosestPlace(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      type: 'hospital',
-    );
+    double policeDistance = 0.0;
+    double hospitalDistance = 0.0;
+    double buildingDistance = 0.0;
+    double roadDistance = 0.0;
+
+    try {
+      final policeResult = await _placesService.getDistanceToClosestPlace(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        type: 'police',
+      );
+      if (policeResult != null) policeDistance = policeResult;
+      debugPrint("Police distance: $policeDistance");
+    } catch (e) {
+      debugPrint("Error getting police distance: $e");
+    }
+
+    try {
+      final hospitalResult = await _placesService.getDistanceToClosestPlace(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        type: 'hospital',
+      );
+      if (hospitalResult != null) hospitalDistance = hospitalResult;
+      debugPrint("Hospital distance: $hospitalDistance");
+    } catch (e) {
+      debugPrint("Error getting hospital distance: $e");
+    }
+
+    try {
+      final buildingResult = await _osmService.getDistanceToNearestBuilding(
+        position.latitude,
+        position.longitude,
+      );
+      buildingDistance = buildingResult;
+      debugPrint("Building distance: $buildingDistance");
+    } catch (e) {
+      debugPrint("Error getting building distance: $e");
+    }
+
+    try {
+      final roadResult = await _osmService.getDistanceToNearestImportantRoad(
+        position.latitude,
+        position.longitude,
+      );
+      roadDistance = roadResult;
+      debugPrint("Road distance: $roadDistance");
+    } catch (e) {
+      debugPrint("Error getting road distance: $e");
+    }
+
+    final weatherData = await _weatherService.fetchWeather(
+        position.latitude, position.longitude);
+
+    final timeOfDay = _getTimeOfDay(DateTime.now());
 
     final newZone = Zone(
       id: 'flagged_${DateTime.now().millisecondsSinceEpoch}',
@@ -457,13 +520,25 @@ class MapProvider with ChangeNotifier {
       type: ZoneType.flag,
       count: 1,
       dangerTag: dangerTag,
+      timeOfDay: timeOfDay,
       policeDistance: policeDistance,
       hospitalDistance: hospitalDistance,
+      buildingDistance: buildingDistance,
+      roadDistance: roadDistance,
+      weatherData: weatherData,
     );
 
     _flaggedZones[newZone.id] = newZone;
 
-    await _firestoreService.addFlaggedZone(position, dangerTag, userId);
+    debugPrint(
+        "✅ SAVING TO FIRESTORE - Police: $policeDistance, Hospital: $hospitalDistance, Building: $buildingDistance, Road: $roadDistance");
+
+    await _firestoreService.addFlaggedZone(position, dangerTag, userId,
+        policeDistance: policeDistance,
+        hospitalDistance: hospitalDistance,
+        buildingDistance: buildingDistance,
+        roadDistance: roadDistance,
+        weatherData: weatherData);
 
     _markers.add(Marker(
       markerId: MarkerId(newZone.id),
@@ -472,12 +547,26 @@ class MapProvider with ChangeNotifier {
       infoWindow: InfoWindow(
         title: 'Danger: $dangerTag',
         snippet:
-            'Police: ${policeDistance?.toStringAsFixed(0)} m, Hospital: ${hospitalDistance?.toStringAsFixed(0)} m',
+            "Police: ${policeDistance.toStringAsFixed(0)} m, \nHospital: ${hospitalDistance.toStringAsFixed(0)} m,\nWeather: ${weatherData['weather'][0]['main']}'",
       ),
     ));
 
     await _reclusterZones(SettingsProvider());
     notifyListeners();
+  }
+
+  String _getTimeOfDay(DateTime dateTime) {
+    /// determines time of day
+    final hour = dateTime.hour;
+    if (hour >= 5 && hour < 12) {
+      return 'morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'afternoon';
+    } else if (hour >= 17 && hour < 21) {
+      return 'evening';
+    } else {
+      return 'night';
+    }
   }
 
   Future<void> handleMapLongPress(LatLng position, BuildContext context,

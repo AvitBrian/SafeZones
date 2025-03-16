@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:safezones/utils/constants.dart';
 import '../models/zone_model.dart';
 import '../providers/settings_provider.dart';
-import '../providers/map_provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/snack_bar.dart';
@@ -16,6 +15,7 @@ class AlertsPanel extends StatefulWidget {
   final List<Zone> dangerZones;
   final Function(Zone zone)? onZoneSelected;
   final BitmapDescriptor? customPinIcon;
+  final Color? color;
 
   const AlertsPanel({
     super.key,
@@ -23,6 +23,7 @@ class AlertsPanel extends StatefulWidget {
     required this.dangerZones,
     this.onZoneSelected,
     this.customPinIcon,
+    this.color,
   });
 
   @override
@@ -33,6 +34,8 @@ class _AlertsPanelState extends State<AlertsPanel>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final bool _isExpanded = false;
+
+  get color => widget.color;
 
   @override
   void initState() {
@@ -49,14 +52,12 @@ class _AlertsPanelState extends State<AlertsPanel>
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       child: Row(
         children: [
-
           Expanded(
             child: Stack(
               clipBehavior: Clip.none,
@@ -64,14 +65,15 @@ class _AlertsPanelState extends State<AlertsPanel>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
-                backgroundColor:MyConstants.primaryColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+                      backgroundColor: color ?? MyConstants.primaryColor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 18),
                       shape: RoundedRectangleBorder(
-                        borderRadius: MyConstants.roundness,
-                      ),
+                          borderRadius: MyConstants.roundness,
+                          side: BorderSide(
+                              width: .9, color: MyConstants.secondaryColor)),
                     ),
                     onPressed: () => _showDangerZonesPanel(context),
                     child: const FittedBox(
@@ -115,10 +117,11 @@ class _AlertsPanelState extends State<AlertsPanel>
               style: ElevatedButton.styleFrom(
                 elevation: 0,
                 backgroundColor: Colors.red,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
                 shape: RoundedRectangleBorder(
-                  borderRadius: MyConstants.roundness,
-                ),
+                    borderRadius: MyConstants.roundness,
+                    side: const BorderSide(color: Colors.amber, width: .9)),
               ),
               onPressed: () => _handleEmergency(context),
               child: const FittedBox(
@@ -148,35 +151,41 @@ class _AlertsPanelState extends State<AlertsPanel>
       );
       return;
     }
-    
+
     if (widget.userLocation != null) {
-      String phoneNumber = settings.emergencyContact.replaceAll(RegExp(r'[^\d]'), '');
+      String phoneNumber =
+          settings.emergencyContact.replaceAll(RegExp(r'[^\d]'), '');
       if (!phoneNumber.startsWith('25')) {
-        phoneNumber = phoneNumber.startsWith('0') ? '250${phoneNumber.substring(1)}' : '250$phoneNumber';
+        phoneNumber = phoneNumber.startsWith('0')
+            ? '250${phoneNumber.substring(1)}'
+            : '250$phoneNumber';
       }
-      
-      final message = "Hey, might be in danger! \n \nMy location: \nhttps://www.google.com/maps/search/?api=1&query=${widget.userLocation!.latitude},${widget.userLocation!.longitude}";
-      final url = Uri.parse("https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}");
-      
+
+      final message =
+          "Hey, might be in danger! \n \nMy location: \nhttps://www.google.com/maps/search/?api=1&query=${widget.userLocation!.latitude},${widget.userLocation!.longitude}";
+      final url = Uri.parse(
+          "https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}");
+
       try {
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
         } else {
-          if(context.mounted) {
+          if (context.mounted) {
             openSnackBar(
-            context,
-            'WhatsApp is not installed',
-            Colors.red,
-          );
+              context,
+              'WhatsApp is not installed',
+              Colors.red,
+            );
           }
         }
       } catch (e) {
-        if(context.mounted){
+        if (context.mounted) {
           openSnackBar(
-          context,
-          'Error launching WhatsApp: $e',
-          Colors.red,
-        );}
+            context,
+            'Error launching WhatsApp: $e',
+            Colors.red,
+          );
+        }
       }
     }
   }
@@ -241,11 +250,11 @@ class _AlertsPanelState extends State<AlertsPanel>
                                   ? "Flagged Zone"
                                   : "Danger Zone",
                               "${(Geolocator.distanceBetween(
-                                widget.userLocation!.latitude,
-                                widget.userLocation!.longitude,
-                                zone.center.latitude,
-                                zone.center.longitude,
-                              ) / 1000).toStringAsFixed(1)} km away",
+                                    widget.userLocation!.latitude,
+                                    widget.userLocation!.longitude,
+                                    zone.center.latitude,
+                                    zone.center.longitude,
+                                  ) / 1000).toStringAsFixed(1)} km away",
                               zone.type == ZoneType.flag
                                   ? Colors.amber
                                   : Colors.redAccent,
@@ -267,7 +276,7 @@ class _AlertsPanelState extends State<AlertsPanel>
 
   List<Zone> _getNearbyZones() {
     if (widget.userLocation == null) return [];
-    
+
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     return widget.dangerZones.where((zone) {
       final distance = Geolocator.distanceBetween(
@@ -316,8 +325,8 @@ class _AlertsPanelState extends State<AlertsPanel>
                   children: [
                     Text(
                       tag,
-                      style: TextStyle(
-                          color: MyConstants.textColor, fontSize: 16),
+                      style:
+                          TextStyle(color: MyConstants.textColor, fontSize: 16),
                     ),
                     Text(
                       distance,

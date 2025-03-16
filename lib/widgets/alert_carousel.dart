@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:safezones/utils/constants.dart';
 import '../models/zone_model.dart';
 import '../providers/settings_provider.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 class AlertsCarousel extends StatelessWidget {
   final Position? userLocation;
@@ -39,7 +40,6 @@ class AlertsCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    // Filter zones that are within the alert radius.
     final nearbyZones = dangerZones.where((zone) {
       if (userLocation == null) return false;
       final distance = Geolocator.distanceBetween(
@@ -53,109 +53,112 @@ class AlertsCarousel extends StatelessWidget {
 
     if (nearbyZones.isEmpty) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: 130,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: nearbyZones.length,
-        itemBuilder: (context, index) {
-          final zone = nearbyZones[index];
-          return GestureDetector(
-            onTap: () => onZoneSelected?.call(zone),
-            child: Container(
-              width: MyConstants.screenWidth(context) * .7,
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: MyConstants.primaryColor,
-                borderRadius: MyConstants.roundness,
-                border: Border.all(
-                  color: zone.type == ZoneType.flag
-                      ? const Color.fromARGB(255, 52, 50, 43)
-                      : Colors.redAccent,
-                  width: .5,
-                ),
+    final double viewportFraction = nearbyZones.length == 1 ? .95 : 0.85;
+
+    return CarouselSlider.builder(
+      itemCount: nearbyZones.length,
+      options: CarouselOptions(
+        height: 135,
+        viewportFraction: viewportFraction,
+        enlargeCenterPage: nearbyZones.length > 1,
+        enableInfiniteScroll: nearbyZones.length > 1,
+        autoPlay: nearbyZones.length > 1,
+        autoPlayInterval: const Duration(seconds: 7),
+        autoPlayAnimationDuration: const Duration(milliseconds: 1200),
+        pauseAutoPlayOnTouch: true,
+      ),
+      itemBuilder: (context, index, realIndex) {
+        final zone = nearbyZones[index];
+        return GestureDetector(
+          onTap: () => onZoneSelected?.call(zone),
+          child: Container(
+            width: MyConstants.screenWidth(context),
+            margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 13),
+            padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+            decoration: BoxDecoration(
+              color: MyConstants.primaryColor,
+              borderRadius: MyConstants.roundness,
+              border: Border.all(
+                color: zone.type == ZoneType.flag
+                    ? MyConstants.secondaryColor
+                    : Colors.redAccent,
+                width: .8,
               ),
-              child: Row(
-                children: [
-                  // Left: Text info
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            zone.dangerTag ??
-                                (zone.type == ZoneType.flag
-                                    ? "Flagged Zone"
-                                    : "Danger Zone"),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          zone.dangerTag ??
+                              (zone.type == ZoneType.flag
+                                  ? "Flagged Zone"
+                                  : "Danger Zone"),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            getDistance(zone),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
-                            ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          getDistance(zone),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Row(
-                          children: [
-                            Icon(Icons.near_me,
-                                color: Colors.white70, size: 14),
-                            SizedBox(width: 4),
-                            Flexible(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "Tap to navigate",
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
+                      ),
+                      const Row(
+                        children: [
+                          Icon(Icons.near_me, color: Colors.white70, size: 14),
+                          SizedBox(width: 4),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Tap to navigate",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  // Right: Image container
-                  Container(
-                    width: 80,
-                    height: 800,
-                    decoration: BoxDecoration(
-                      color: zone.type == ZoneType.flag
-                          ? Colors.amber.withValues(alpha: 0.3)
-                          : Colors.redAccent.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Image.asset(
-                      getAvatarPath(zone),
-                      fit: BoxFit.contain,
-                    ),
+                ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: zone.type == ZoneType.flag
+                        ? Colors.amber.withValues(alpha: 0.3)
+                        : Colors.redAccent.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-              ),
+                  child: Image.asset(
+                    getAvatarPath(zone),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

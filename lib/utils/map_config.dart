@@ -10,10 +10,10 @@ class MapConfig {
         "saturation": 20
       },
       {
-        "lightness": 20
+        "lightness": 10
       },
       {
-        "gamma": 0.9
+        "gamma": 0.5
       }
     ]
   },
@@ -40,10 +40,13 @@ class MapConfig {
         "hue": "#5949eb"
       },
       {
-        "saturation": 40
+        "color": "#cfcbf7"
       },
       {
-        "lightness": 5
+        "saturation": 80
+      },
+      {
+        "lightness": 0
       }
     ]
   },
@@ -55,10 +58,10 @@ class MapConfig {
         "hue": "#5949eb"
       },
       {
-        "saturation": 40
+        "saturation": 20
       },
       {
-        "lightness": 10
+        "lightness": 2
       }
     ]
   }
@@ -74,13 +77,13 @@ class MapConfig {
         "invert_lightness": true
       },
       {
-        "saturation": 1
+        "saturation": 10
       },
       {
-        "lightness": 20
+        "lightness": 55
       },
       {
-        "gamma": 0.9
+        "gamma": .5
       }
     ]
   },
@@ -92,7 +95,7 @@ class MapConfig {
         "hue": "#5949eb"
       },
       {
-        "saturation": 40
+        "saturation": 10
       },
       {
         "lightness": 0
@@ -107,7 +110,7 @@ class MapConfig {
         "hue": "#5949eb"
       },
       {
-        "saturation": 40
+        "saturation": 20
       },
       {
         "lightness": 5
@@ -122,10 +125,10 @@ class MapConfig {
         "hue": "#5949eb"
       },
       {
-        "saturation": 40
+        "saturation": 2
       },
       {
-        "lightness": 10
+        "lightness": 5
       }
     ]
   }

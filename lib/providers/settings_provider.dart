@@ -6,16 +6,23 @@ class SettingsProvider extends ChangeNotifier {
   static const String _alertRadiusKey = 'alert_radius';
   static const String _soundAlertsKey = 'sound_alerts';
   static const String _emergencyContactKey = 'emergency_contact';
-  
+  static const String _darkModeKey = 'dark_mode';
+
+  bool _darkMode = true;
   bool _locationTracking = true;
   double _alertRadius = 300;
   bool _soundAlertsEnabled = true;
   String _emergencyContact = '';
 
   bool get locationTracking => _locationTracking;
+
   double get alertRadius => _alertRadius;
+
   bool get soundAlertsEnabled => _soundAlertsEnabled;
+
   String get emergencyContact => _emergencyContact;
+
+  bool get darkMode => _darkMode;
 
   SettingsProvider() {
     _loadSettings();
@@ -27,12 +34,20 @@ class SettingsProvider extends ChangeNotifier {
     _alertRadius = prefs.getDouble(_alertRadiusKey) ?? 300;
     _soundAlertsEnabled = prefs.getBool(_soundAlertsKey) ?? true;
     _emergencyContact = prefs.getString(_emergencyContactKey) ?? '';
+    _darkMode = prefs.getBool(_darkModeKey) ?? true;
     notifyListeners();
   }
 
   Future<void> _checkLocationPermission() async {
     final status = await Permission.location.status;
     _locationTracking = status.isGranted;
+    notifyListeners();
+  }
+
+  Future<void> setDarkMode(bool value) async {
+    _darkMode = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_darkModeKey, value);
     notifyListeners();
   }
 

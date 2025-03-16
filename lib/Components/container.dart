@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:safezones/utils/constants.dart';
 
 class MyContainer extends StatelessWidget {
   final String? image;
