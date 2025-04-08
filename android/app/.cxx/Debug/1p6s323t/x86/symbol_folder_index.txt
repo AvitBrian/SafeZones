@@ -1,0 +1,1 @@
+/home/kira/Code/ALU/Capstone /SafeZones/build/app/intermediates/cxx/Debug/1p6s323t/obj/x86

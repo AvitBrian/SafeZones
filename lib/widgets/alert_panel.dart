@@ -54,89 +54,105 @@ class _AlertsPanelState extends State<AlertsPanel>
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+    final filteredZones = settings.showAiPredictions
+        ? widget.dangerZones
+        : widget.dangerZones.where((zone) => zone.userId != 'AI').toList();
+    final nearbyZones = _getNearbyZones(filteredZones);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       child: Row(
-        children: [
-          Expanded(
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                SizedBox(
-                  width: double.infinity,
+        children: nearbyZones.isEmpty
+            ? [
+                // Only SOS button if no nearby zones
+                Expanded(child: _buildSosButton(context)),
+              ]
+            : [
+                Expanded(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: color ?? MyConstants.primaryColor,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 18),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: MyConstants.roundness,
+                                side: BorderSide(
+                                    width: .9,
+                                    color: MyConstants.secondaryColor)),
+                          ),
+                          onPressed: () =>
+                              _showDangerZonesPanel(context, filteredZones),
+                          child: const FittedBox(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.warning,
+                                    color: Colors.white, size: 20),
+                                SizedBox(width: 4),
+                                Text('Alerts',
+                                    style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_getNearbyZones(filteredZones).isNotEmpty)
+                        Positioned(
+                          right: -8,
+                          top: -8,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              _getNearbyZones(filteredZones).length.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
-                      backgroundColor: color ?? MyConstants.primaryColor,
+                      backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 18),
                       shape: RoundedRectangleBorder(
                           borderRadius: MyConstants.roundness,
-                          side: BorderSide(
-                              width: .9, color: MyConstants.secondaryColor)),
+                          side:
+                              const BorderSide(color: Colors.amber, width: .9)),
                     ),
-                    onPressed: () => _showDangerZonesPanel(context),
+                    onPressed: () => _handleEmergency(context),
                     child: const FittedBox(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.warning, color: Colors.white, size: 20),
+                          Icon(Icons.emergency, color: Colors.white, size: 20),
                           SizedBox(width: 4),
-                          Text('Alerts', style: TextStyle(color: Colors.white)),
+                          Text('SOS', style: TextStyle(color: Colors.white)),
                         ],
                       ),
                     ),
                   ),
                 ),
-                if (_getNearbyZones().isNotEmpty)
-                  Positioned(
-                    right: -8,
-                    top: -8,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        _getNearbyZones().length.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
               ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: Colors.red,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
-                shape: RoundedRectangleBorder(
-                    borderRadius: MyConstants.roundness,
-                    side: const BorderSide(color: Colors.amber, width: .9)),
-              ),
-              onPressed: () => _handleEmergency(context),
-              child: const FittedBox(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.emergency, color: Colors.white, size: 20),
-                    SizedBox(width: 4),
-                    Text('SOS', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -190,7 +206,7 @@ class _AlertsPanelState extends State<AlertsPanel>
     }
   }
 
-  void _showDangerZonesPanel(BuildContext context) {
+  void _showDangerZonesPanel(BuildContext context, List<Zone> filteredZones) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -229,7 +245,7 @@ class _AlertsPanelState extends State<AlertsPanel>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "${_getNearbyZones().length} active zones",
+                        "${filteredZones.length} active zones",
                         style: const TextStyle(color: Colors.redAccent),
                       ),
                     ],
@@ -238,13 +254,13 @@ class _AlertsPanelState extends State<AlertsPanel>
                 const Divider(height: 1, color: Colors.white24),
                 SizedBox(
                   height: 300,
-                  child: _getNearbyZones().isEmpty
+                  child: filteredZones.isEmpty
                       ? _buildNoAlerts()
                       : ListView.builder(
                           padding: const EdgeInsets.all(16),
-                          itemCount: _getNearbyZones().length,
+                          itemCount: filteredZones.length,
                           itemBuilder: (context, index) {
-                            final zone = _getNearbyZones()[index];
+                            final zone = filteredZones[index];
                             return _buildAlertItem(
                               zone.type == ZoneType.flag
                                   ? "Flagged Zone"
@@ -274,11 +290,11 @@ class _AlertsPanelState extends State<AlertsPanel>
     );
   }
 
-  List<Zone> _getNearbyZones() {
+  List<Zone> _getNearbyZones(List<Zone> filteredZones) {
     if (widget.userLocation == null) return [];
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    return widget.dangerZones.where((zone) {
+    return filteredZones.where((zone) {
       final distance = Geolocator.distanceBetween(
         widget.userLocation!.latitude,
         widget.userLocation!.longitude,
@@ -293,7 +309,7 @@ class _AlertsPanelState extends State<AlertsPanel>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: MyConstants.secondaryColor,
+        color: Colors.transparent,
         borderRadius: MyConstants.roundness,
       ),
       child: const Text(
@@ -340,6 +356,85 @@ class _AlertsPanelState extends State<AlertsPanel>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSosButton(BuildContext context) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        elevation: 0,
+        backgroundColor: Colors.red,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: MyConstants.roundness,
+          side: const BorderSide(color: Colors.amber, width: .9),
+        ),
+      ),
+      onPressed: () => _handleEmergency(context),
+      child: const FittedBox(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.emergency, color: Colors.white, size: 20),
+            SizedBox(width: 4),
+            Text('SOS', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlertsButton(
+      BuildContext context, List<Zone> filteredZones, List<Zone> nearbyZones) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              backgroundColor: color ?? MyConstants.primaryColor,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: MyConstants.roundness,
+                side: BorderSide(width: .9, color: MyConstants.secondaryColor),
+              ),
+            ),
+            onPressed: () => _showDangerZonesPanel(context, filteredZones),
+            child: const FittedBox(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.warning, color: Colors.white, size: 20),
+                  SizedBox(width: 4),
+                  Text('Alerts', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (nearbyZones.isNotEmpty)
+          Positioned(
+            right: -8,
+            top: -8,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                nearbyZones.length.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

@@ -17,10 +17,15 @@ class AuthService extends ChangeNotifier {
   UserModel? _userData;
 
   bool get isLoading => _isLoading;
+
   bool get isSignedIn => _isSignedIn;
+
   bool get showSignIn => _showSignIn;
+
   String? get errorMessage => _errorMessage;
+
   User? get currentUser => _currentUser;
+
   UserModel? get userData => _userData;
 
   AuthService() {
@@ -39,7 +44,8 @@ class AuthService extends ChangeNotifier {
   Future<void> _fetchUserData() async {
     if (_currentUser == null) return;
 
-    final doc = await _firestore.collection('users').doc(_currentUser!.uid).get();
+    final doc =
+        await _firestore.collection('users').doc(_currentUser!.uid).get();
     if (doc.exists) {
       _userData = UserModel.fromMap(doc.data()!);
       notifyListeners();
@@ -71,7 +77,8 @@ class AuthService extends ChangeNotifier {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -83,33 +90,43 @@ class AuthService extends ChangeNotifier {
       _isSignedIn = true;
 
       if (userCredential.additionalUserInfo!.isNewUser) {
-        await saveUserData(UserModel(
-          uid: _currentUser!.uid,
-          email: _currentUser!.email!,
-          username: googleUser.displayName ?? 'User',
-          location: '',
-          profileImageUrl: googleUser.photoUrl ?? '',
-          emailVerified: _currentUser!.emailVerified,
-          flags: [],
-          createdAt: Timestamp.now(),
-          firebaseUser: _currentUser,
-        ), '', googleUser.photoUrl ?? '', createdAt: Timestamp.now());
+        await saveUserData(
+            UserModel(
+              uid: _currentUser!.uid,
+              email: _currentUser!.email!,
+              username: googleUser.displayName ?? 'User',
+              location: '',
+              profileImageUrl: googleUser.photoUrl ?? '',
+              emailVerified: _currentUser!.emailVerified,
+              flags: [],
+              createdAt: Timestamp.now(),
+              firebaseUser: _currentUser,
+            ),
+            '',
+            googleUser.photoUrl ?? '',
+            createdAt: Timestamp.now());
       } else {
-        final userDoc = await _firestore.collection('users').doc(_currentUser!.uid).get();
+        final userDoc =
+            await _firestore.collection('users').doc(_currentUser!.uid).get();
         if (userDoc.exists) {
-          _userData = UserModel.fromMap(userDoc.data()!, firebaseUser: _currentUser);
+          _userData =
+              UserModel.fromMap(userDoc.data()!, firebaseUser: _currentUser);
         } else {
-          await saveUserData(UserModel(
-            uid: _currentUser!.uid,
-            email: _currentUser!.email!,
-            username: googleUser.displayName ?? 'User',
-            location: '',
-            profileImageUrl: googleUser.photoUrl ?? '',
-            emailVerified: _currentUser!.emailVerified,
-            flags: [],
-            createdAt: Timestamp.now(),
-            firebaseUser: _currentUser,
-          ), '', googleUser.photoUrl ?? '', createdAt: Timestamp.now());
+          await saveUserData(
+              UserModel(
+                uid: _currentUser!.uid,
+                email: _currentUser!.email!,
+                username: googleUser.displayName ?? 'User',
+                location: '',
+                profileImageUrl: googleUser.photoUrl ?? '',
+                emailVerified: _currentUser!.emailVerified,
+                flags: [],
+                createdAt: Timestamp.now(),
+                firebaseUser: _currentUser,
+              ),
+              '',
+              googleUser.photoUrl ?? '',
+              createdAt: Timestamp.now());
         }
       }
 
@@ -140,16 +157,20 @@ class AuthService extends ChangeNotifier {
           uid: _currentUser!.uid,
           email: _currentUser!.email ?? '',
           username: _currentUser!.displayName ?? 'User',
-          location: '', // Set default location here or leave empty
+          location: '',
+          // Set default location here or leave empty
           profileImageUrl: _currentUser!.photoURL ?? '',
           emailVerified: _currentUser!.emailVerified,
           flags: [],
           createdAt: Timestamp.now(),
-          firebaseUser: _currentUser, // We associate the Firebase User with UserModel
+          firebaseUser:
+              _currentUser, // We associate the Firebase User with UserModel
         );
 
         // Save user data in Firestore
-        final success = await saveUserData(userModel, userModel.location, userModel.profileImageUrl, createdAt: userModel.createdAt);
+        final success = await saveUserData(
+            userModel, userModel.location, userModel.profileImageUrl,
+            createdAt: userModel.createdAt);
         if (success) {
           return userModel;
         } else {
@@ -165,7 +186,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-
   Future<void> signOut() async {
     await _auth.signOut();
     await _googleSignIn.signOut();
@@ -175,7 +195,9 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> saveUserData(UserModel user, String location, String profileImageUrl, {required Timestamp createdAt}) async {
+  Future<bool> saveUserData(
+      UserModel user, String location, String profileImageUrl,
+      {required Timestamp createdAt}) async {
     try {
       await _firestore.collection('users').doc(user.uid).set({
         'email': user.email,
@@ -208,6 +230,26 @@ class AuthService extends ChangeNotifier {
   void toggleAuthState() {
     _showSignIn = !_showSignIn;
     notifyListeners();
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Delete user from Firebase Auth
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .delete(); // Optional: delete user doc
+        await user.delete();
+        _currentUser = null;
+        _isSignedIn = false;
+        _userData = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error deleting user account: $e');
+    }
   }
 
   String _getErrorMessage(FirebaseAuthException e) {
@@ -250,7 +292,7 @@ class AuthService extends ChangeNotifier {
       FirebaseFirestore.instance.collection('users').doc(userId).update({
         'location': newLocation,
       }).then((_) {
-        _fetchUserData(); 
+        _fetchUserData();
       }).catchError((error) {
         print("Failed to update location: $error");
       });

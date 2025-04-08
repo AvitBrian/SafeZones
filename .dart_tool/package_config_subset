@@ -46,6 +46,10 @@ boolean_selector
 3.1
 file:///home/kira/.pub-cache/hosted/pub.dev/boolean_selector-2.1.2/
 file:///home/kira/.pub-cache/hosted/pub.dev/boolean_selector-2.1.2/lib/
+card_swiper
+2.15
+file:///home/kira/.pub-cache/hosted/pub.dev/card_swiper-3.0.1/
+file:///home/kira/.pub-cache/hosted/pub.dev/card_swiper-3.0.1/lib/
 carousel_slider
 2.12
 file:///home/kira/.pub-cache/hosted/pub.dev/carousel_slider-5.0.0/
@@ -94,6 +98,10 @@ cupertino_icons
 3.1
 file:///home/kira/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.8/
 file:///home/kira/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.8/lib/
+custom_info_window
+2.12
+file:///home/kira/.pub-cache/hosted/pub.dev/custom_info_window-1.0.1/
+file:///home/kira/.pub-cache/hosted/pub.dev/custom_info_window-1.0.1/lib/
 dbus
 2.17
 file:///home/kira/.pub-cache/hosted/pub.dev/dbus-0.7.11/
@@ -430,6 +438,10 @@ stack_trace
 3.4
 file:///home/kira/.pub-cache/hosted/pub.dev/stack_trace-1.12.1/
 file:///home/kira/.pub-cache/hosted/pub.dev/stack_trace-1.12.1/lib/
+stacked_card_carousel
+2.18
+file:///home/kira/.pub-cache/hosted/pub.dev/stacked_card_carousel-0.0.4/
+file:///home/kira/.pub-cache/hosted/pub.dev/stacked_card_carousel-0.0.4/lib/
 stream_channel
 3.3
 file:///home/kira/.pub-cache/hosted/pub.dev/stream_channel-2.1.4/

@@ -74,6 +74,12 @@
       "languageVersion": "3.1"
     },
     {
+      "name": "card_swiper",
+      "rootUri": "file:///home/kira/.pub-cache/hosted/pub.dev/card_swiper-3.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.15"
+    },
+    {
       "name": "carousel_slider",
       "rootUri": "file:///home/kira/.pub-cache/hosted/pub.dev/carousel_slider-5.0.0",
       "packageUri": "lib/",
@@ -144,6 +150,12 @@
       "rootUri": "file:///home/kira/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.8",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "custom_info_window",
+      "rootUri": "file:///home/kira/.pub-cache/hosted/pub.dev/custom_info_window-1.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "dbus",
@@ -674,6 +686,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "stacked_card_carousel",
+      "rootUri": "file:///home/kira/.pub-cache/hosted/pub.dev/stacked_card_carousel-0.0.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "stream_channel",
       "rootUri": "file:///home/kira/.pub-cache/hosted/pub.dev/stream_channel-2.1.4",
       "packageUri": "lib/",
@@ -806,7 +824,7 @@
       "languageVersion": "3.5"
     }
   ],
-  "generated": "2025-03-13T12:31:49.119836Z",
+  "generated": "2025-03-31T20:43:04.820089Z",
   "generator": "pub",
   "generatorVersion": "3.7.0",
   "flutterRoot": "file:///home/kira/Development/flutter",

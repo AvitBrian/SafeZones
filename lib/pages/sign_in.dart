@@ -4,6 +4,7 @@ import 'package:safezones/screens/map_screen.dart';
 
 import '../Components/button.dart';
 import '../Components/container.dart';
+import '../Components/terms_sheet.dart';
 import '../Components/textfield.dart';
 import '../services/auth_service.dart';
 import '../providers/connection_provider.dart';
@@ -20,16 +21,12 @@ class SignInForm extends StatefulWidget {
 
 class _SignInFormState extends State<SignInForm>
     with SingleTickerProviderStateMixin {
-  // Variables
-  final bool _isLoadingGoogle = false;
-  final bool _isLoginSuccessfull = false;
-  final bool _isLoading = false;
-  bool dev_mode = false;
-
-  // Controllers
+  bool _isLoadingGoogle = false;
+  bool _isLoading = false;
+  bool _acceptedTerms = false;
   late final AnimationController _controller;
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -45,30 +42,26 @@ class _SignInFormState extends State<SignInForm>
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Future<void> handleEmailAndPasswordSignIn() async {
     final authProvider = context.read<AuthService>();
-    final connP = context.read<ConnectionProvider>();
-    double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
+    authProvider.clearError();
 
-    // handleEmailAndPasswordSignIn
-    Future<void> handleEmailAndPasswordSignIn() async {
-      authProvider.clearError();
+    if (!_acceptedTerms) {
+      openSnackBar(context, "Please accept both agreements", Colors.orange);
+      return;
+    }
 
-      if (dev_mode) {
-        handleAfterLogin();
-        return;
-      }
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
-      final email = emailController.text.trim();
-      final password = passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
+      openSnackBar(context, "Please fill in all fields", Colors.orange);
+      return;
+    }
 
-      if (email.isEmpty || password.isEmpty) {
-        openSnackBar(context, "Please fill in all fields", Colors.orange);
-        return;
-      }
+    setState(() => _isLoading = true);
 
+    try {
       final user = await authProvider.signInWithEmail(email, password);
       if (user != null) {
         handleAfterLogin();
@@ -76,12 +69,25 @@ class _SignInFormState extends State<SignInForm>
         openSnackBar(
             context, authProvider.errorMessage ?? "Sign in failed", Colors.red);
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> handleGoogleSignIn() async {
+    final authProvider = context.read<AuthService>();
+    authProvider.clearError();
+
+    if (!_acceptedTerms) {
+      openSnackBar(context, "Please accept both agreements", Colors.orange);
+      return;
     }
 
-    Future<void> handleGoogleSignIn() async {
-      final authProvider = context.read<AuthService>();
-      authProvider.clearError();
+    setState(() => _isLoadingGoogle = true);
 
+    try {
       final user = await authProvider.signInWithGoogle();
       if (user != null) {
         handleAfterLogin();
@@ -90,48 +96,56 @@ class _SignInFormState extends State<SignInForm>
           openSnackBar(context, authProvider.errorMessage!, Colors.red);
         }
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingGoogle = false);
+      }
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          SizedBox(height: screenHeight * .03),
           SizedBox(
             height: 135,
             child: Image.asset(
               'assets/images/logo-long.png',
-              height: 100,
+              height: 90,
               width: screenWidth * .8,
               fit: BoxFit.fitWidth,
             ),
           ),
           SizedBox(height: screenHeight * .05),
           Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Hi there!",
-                    style: TextStyle(
-                        color: MyConstants.textColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 40),
-                  ),
-                  const SizedBox(
-                    height: 2,
-                  ),
-                  Text(
-                    "Welcome Back, you've been missed...",
-                    style: TextStyle(color: MyConstants.textColor),
-                  ),
-                  Text(
-                    'Sign in to continue',
-                    style: TextStyle(color: MyConstants.textColor),
-                  )
-                ],
-              )),
+            alignment: Alignment.centerLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Hi there!",
+                  style: TextStyle(
+                      color: MyConstants.textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 40),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Welcome Back, you've been missed...",
+                  style: TextStyle(color: MyConstants.textColor),
+                ),
+                Text(
+                  'Sign in to continue',
+                  style: TextStyle(color: MyConstants.textColor),
+                )
+              ],
+            ),
+          ),
           const SizedBox(height: 8.0),
           MyTextField(
             hintText: "Email",
@@ -156,8 +170,8 @@ class _SignInFormState extends State<SignInForm>
             children: [
               TextButton(
                 onPressed: () {},
-                style: ButtonStyle(
-                  overlayColor: WidgetStateProperty.all(Colors.transparent),
+                style: TextButton.styleFrom(
+                  overlayColor: MyConstants.primaryColor.withValues(alpha: 0.6),
                 ),
                 child: Text(
                   "forgot password?",
@@ -167,6 +181,43 @@ class _SignInFormState extends State<SignInForm>
               ),
             ],
           ),
+          Column(children: [
+            Row(
+              children: [
+                Checkbox(
+                  value: _acceptedTerms,
+                  activeColor: MyConstants.primaryColor.withValues(alpha: .9),
+                  checkColor: Colors.amberAccent,
+                  onChanged: (value) =>
+                      setState(() => _acceptedTerms = value ?? false),
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => TermsSheet.show(context),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      alignment: Alignment.centerLeft,
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'I agree to the ',
+                        style: TextStyle(color: MyConstants.textColor),
+                        children: [
+                          TextSpan(
+                            text: 'Terms & Conditions',
+                            style: TextStyle(
+                              color: MyConstants.primaryColor,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ]),
           Stack(
             children: [
               MyButton(
@@ -176,7 +227,7 @@ class _SignInFormState extends State<SignInForm>
                 height: 60,
               ),
               Visibility(
-                visible: authProvider.isLoading,
+                visible: _isLoading,
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
@@ -200,7 +251,7 @@ class _SignInFormState extends State<SignInForm>
               Expanded(
                 child: Divider(
                   thickness: 0.5,
-                  color: MyConstants.primaryColor.withValues(alpha: .5),
+                  color: MyConstants.primaryColor.withValues(alpha: 0.5),
                 ),
               ),
               Padding(
@@ -208,13 +259,13 @@ class _SignInFormState extends State<SignInForm>
                 child: Text(
                   "or Sign in with",
                   style: TextStyle(
-                      color: MyConstants.subtextColor.withValues(alpha: .3)),
+                      color: MyConstants.subtextColor..withValues(alpha: 0.3)),
                 ),
               ),
               Expanded(
                 child: Divider(
                   thickness: 0.5,
-                  color: MyConstants.primaryColor.withValues(alpha: .9),
+                  color: MyConstants.primaryColor.withValues(alpha: 0.75),
                 ),
               ),
             ],
@@ -240,7 +291,7 @@ class _SignInFormState extends State<SignInForm>
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: MyConstants.subtextColor.withAlpha(200),
+                        color: MyConstants.primaryColor.withValues(alpha: 0.5),
                       ),
                       height: 59,
                       width: screenWidth * .88,
@@ -263,11 +314,9 @@ class _SignInFormState extends State<SignInForm>
 
   void handleAfterLogin() async {
     if (!mounted) return;
-
     try {
       await Future.delayed(const Duration(seconds: 2));
       if (!mounted) return;
-
       nextScreenReplacement(context, const MapScreen());
     } catch (e) {
       if (!mounted) return;

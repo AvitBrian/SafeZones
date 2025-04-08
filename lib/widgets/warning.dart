@@ -111,12 +111,12 @@ class NotificationManager {
   static bool get isShowing => _currentNotification != null;
 
   static void show(
-      BuildContext context, {
-        required String message,
-        Color color = Colors.red,
-        required String zoneId,
-        VoidCallback? onSnooze,
-      }) {
+    BuildContext context, {
+    required String message,
+    Color color = Colors.red,
+    required String zoneId,
+    VoidCallback? onSnooze,
+  }) {
     if (_snoozedNotifications.containsKey(zoneId)) {
       DateTime snoozeEndTime = _snoozedNotifications[zoneId]!;
       if (DateTime.now().isBefore(snoozeEndTime)) {
@@ -130,6 +130,7 @@ class NotificationManager {
 
     if (SettingsProvider().soundAlertsEnabled) {
       _audioPlayer.play(AssetSource('sounds/beep.mp3'));
+      _audioPlayer.setReleaseMode(ReleaseMode.loop);
     }
 
     void snoozeAction() {
@@ -162,9 +163,10 @@ class NotificationManager {
                 message: message,
                 color: color,
                 onTap: () {
-                  final mapProvider = Provider.of<MapProvider>(context, listen: false);
+                  final mapProvider =
+                      Provider.of<MapProvider>(context, listen: false);
                   final zone = mapProvider.zones.firstWhere(
-                        (z) => z.id == zoneId,
+                    (z) => z.id == zoneId,
                     orElse: () => custom.Zone(
                       id: '',
                       center: const LatLng(0, 0),

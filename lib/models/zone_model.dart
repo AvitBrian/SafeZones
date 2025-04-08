@@ -30,8 +30,12 @@ class Zone {
   final double? policeDistance;
   final double? hospitalDistance;
   final double? buildingDistance;
-  final double? roadDistance;
+  final double? confidence;
   final Map<String, dynamic>? weatherData;
+  final String? userId;
+  final int? upVotes;
+  final int? downVotes;
+  final Map<String, dynamic>? voteIds;
 
   Zone({
     required this.id,
@@ -45,8 +49,12 @@ class Zone {
     this.policeDistance,
     this.hospitalDistance,
     this.buildingDistance,
-    this.roadDistance,
+    this.confidence,
     this.weatherData,
+    this.userId,
+    this.upVotes,
+    this.downVotes,
+    this.voteIds,
   });
 
   Zone copyWith({
@@ -61,8 +69,12 @@ class Zone {
     double? policeDistance,
     double? hospitalDistance,
     double? buildingDistance,
-    double? roadDistance,
+    double? confidence,
     Map<String, dynamic>? weatherData,
+    String? userId,
+    int? upVotes,
+    int? downVotes,
+    Map<String, dynamic>? voteIds,
   }) {
     return Zone(
       id: id ?? this.id,
@@ -76,8 +88,12 @@ class Zone {
       policeDistance: policeDistance ?? this.policeDistance,
       hospitalDistance: hospitalDistance ?? this.hospitalDistance,
       buildingDistance: buildingDistance ?? this.buildingDistance,
-      roadDistance: roadDistance ?? this.roadDistance,
+      confidence: confidence ?? this.confidence,
       weatherData: weatherData ?? this.weatherData,
+      userId: userId ?? this.userId,
+      upVotes: upVotes ?? this.upVotes,
+      downVotes: downVotes ?? this.downVotes,
+      voteIds: voteIds ?? this.voteIds,
     );
   }
 
@@ -86,18 +102,58 @@ class Zone {
     return Zone(
       id: doc.id,
       center: LatLng(data['latitude'], data['longitude']),
-      type: ZoneType.flag,
+      type: ZoneType.values.firstWhere(
+        (e) => e.toString() == 'ZoneType.${data['type']}',
+        orElse: () => ZoneType.flag,
+      ),
       dangerTag: data['dangerTag'],
       timeOfDay: data['timeOfDay'],
       policeDistance: data['policeDistance']?.toDouble(),
       hospitalDistance: data['hospitalDistance']?.toDouble(),
       buildingDistance: data['buildingDistance']?.toDouble(),
-      roadDistance: data['roadDistance']?.toDouble(),
+      confidence: data['confidence']?.toDouble(),
       weatherData: data['weatherData'],
+      userId: data['userId'],
+      upVotes: data['upVotes'] ?? 0,
+      downVotes: data['downVotes'] ?? 0,
+      voteIds: data['voteIds'] != null
+          ? Map<String, dynamic>.from(data['voteIds'])
+          : {},
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'latitude': center.latitude,
+      'longitude': center.longitude,
+      'type': type.toString().split('.').last,
+      'dangerTag': dangerTag,
+      'timeOfDay': timeOfDay,
+      'policeDistance': policeDistance,
+      'hospitalDistance': hospitalDistance,
+      'buildingDistance': buildingDistance,
+      'confidence': confidence,
+      'radius': radius,
+      'dangerLevel': dangerLevel,
+      'count': count,
+      'upVotes': upVotes ?? 0,
+      'downVotes': downVotes ?? 0,
+      'voteIds': voteIds ?? {},
+      'userId': userId,
+      'weatherData': weatherData,
+    };
+  }
+
   factory Zone.dangerZone(String id, LatLng center, List<Zone> flaggedZones) {
+    double confidence = 0.0;
+    final flaggedConfidences = flaggedZones
+        .where((zone) => zone.type == ZoneType.flag && zone.confidence != null)
+        .map((zone) => zone.confidence!)
+        .toList();
+    if (flaggedConfidences.isNotEmpty) {
+      confidence = flaggedConfidences.reduce((a, b) => a + b) /
+          flaggedConfidences.length;
+    }
     return Zone(
       id: id,
       center: center,
@@ -105,18 +161,21 @@ class Zone {
       radius: 300.0,
       dangerLevel: (flaggedZones.length * 0.15).clamp(0.1, 1.0),
       count: flaggedZones.length,
+      confidence: confidence,
+      upVotes: 0,
+      downVotes: 0,
+      voteIds: {},
     );
   }
 
-  static List<Zone> createZones(List<LatLng> coordinates, {double clusterDistance = 300, String? dangerTag}) {
+  static List<Zone> createZones(List<LatLng> coordinates,
+      {double clusterDistance = 300, String? dangerTag}) {
     final clusters = <Zone>[];
     final coords = List<LatLng>.from(coordinates);
     final flaggedZones = <Zone>[];
-
     while (coords.isNotEmpty) {
       final current = coords.removeAt(0);
       final cluster = [current];
-
       coords.removeWhere((point) {
         if (calculateDistance(current, point) < clusterDistance) {
           cluster.add(point);
@@ -124,7 +183,6 @@ class Zone {
         }
         return false;
       });
-
       if (cluster.length > 1) {
         clusters.add(createCluster(cluster));
       } else {
@@ -136,9 +194,7 @@ class Zone {
         ));
       }
     }
-
     final mergedClusters = mergeOverlappingClusters(clusters);
-
     return [...mergedClusters, ...flaggedZones];
   }
 
@@ -152,9 +208,7 @@ class Zone {
         }
       }
     }
-
     final radius = (maxDistance / 2).clamp(50.0, 500.0);
-
     return Zone(
       id: 'cluster_${DateTime.now().millisecondsSinceEpoch}',
       center: calculateCenter(points),
@@ -162,6 +216,9 @@ class Zone {
       dangerLevel: (points.length * 0.15).toDouble().clamp(0.1, 1.0),
       type: ZoneType.dangerZone,
       count: points.length,
+      upVotes: 0,
+      downVotes: 0,
+      voteIds: {},
     );
   }
 
@@ -192,13 +249,18 @@ class Zone {
     return Zone(
       id: 'merged_${a.id}_${b.id}',
       center: LatLng(
-        (a.center.latitude * a.count + b.center.latitude * b.count) / (a.count + b.count),
-        (a.center.longitude * a.count + b.center.longitude * b.count) / (a.count + b.count),
+        (a.center.latitude * a.count + b.center.latitude * b.count) /
+            (a.count + b.count),
+        (a.center.longitude * a.count + b.center.longitude * b.count) /
+            (a.count + b.count),
       ),
       radius: max(a.radius, b.radius),
       dangerLevel: (a.dangerLevel + b.dangerLevel).toDouble().clamp(0.1, 1.0),
       type: ZoneType.dangerZone,
       count: a.count + b.count,
+      upVotes: 0,
+      downVotes: 0,
+      voteIds: {},
     );
   }
 
@@ -207,67 +269,46 @@ class Zone {
   }
 
   static LatLng calculateCenter(List<LatLng> points) {
-    final lat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
-    final lng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
+    final lat =
+        points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
+    final lng =
+        points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
     return LatLng(lat, lng);
   }
 
   static double calculateDistance(LatLng point1, LatLng point2) {
     const p = pi / 180;
-    final a = 0.5 - cos((point2.latitude - point1.latitude) * p) / 2 + 
-              cos(point1.latitude * p) * cos(point2.latitude * p) * 
-              (1 - cos((point2.longitude - point1.longitude) * p)) / 2;
-    return 12742 * asin(sqrt(a)) * 1000; // 2 * R; R = 6371 km, result in meters
+    final a = 0.5 -
+        cos((point2.latitude - point1.latitude) * p) / 2 +
+        cos(point1.latitude * p) *
+            cos(point2.latitude * p) *
+            (1 - cos((point2.longitude - point1.longitude) * p)) /
+            2;
+    return 12742 * asin(sqrt(a)) * 1000;
   }
 
-  static List<Zone> reclusterZones(List<Zone> zones, {double? clusterDistance}) {
+  static List<Zone> reclusterZones(List<Zone> zones,
+      {double? clusterDistance}) {
     final flaggedLocations = zones
         .where((zone) => zone.type == ZoneType.flag)
         .map((zone) => zone.center)
         .toList();
-
-    final customClusterDistance = clusterDistance ??
-        _calculateDynamicClusterDistance(flaggedLocations);
-
-    final newZones = createZones(
-        flaggedLocations,
-        clusterDistance: customClusterDistance
-    );
-
-    final dangerZones = zones.where((zone) => zone.type != ZoneType.flag).toList();
+    final customClusterDistance =
+        clusterDistance ?? _calculateDynamicClusterDistance(flaggedLocations);
+    final newZones =
+        createZones(flaggedLocations, clusterDistance: customClusterDistance);
+    final dangerZones =
+        zones.where((zone) => zone.type != ZoneType.flag).toList();
     newZones.addAll(dangerZones);
-
     return newZones;
   }
 
   static double _calculateDynamicClusterDistance(List<LatLng> coordinates) {
     if (coordinates.length <= 3) return 300.0;
-
     final spread = coordinates.calculateSpread();
-
     if (spread < 500) return 300.0;
     if (spread < 1000) return 500.0;
     if (spread < 2000) return 750.0;
     return 1000.0;
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'center': {
-        'latitude': center.latitude,
-        'longitude': center.longitude,
-      },
-      'type': type.toString(),
-      'dangerTag': dangerTag,
-      'timeOfDay': timeOfDay,
-      'policeDistance': policeDistance,
-      'hospitalDistance': hospitalDistance,
-      'buildingDistance': buildingDistance,
-      'roadDistance': roadDistance,
-      'radius': radius,
-      'dangerLevel': dangerLevel,
-      'count': count,
-    };
   }
 }

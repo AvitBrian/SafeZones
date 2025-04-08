@@ -86,6 +86,13 @@
             </list>
           </value>
         </entry>
+        <entry key="card_swiper">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/card_swiper-3.0.1/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="carousel_slider">
           <value>
             <list>
@@ -167,6 +174,13 @@
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.8/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="custom_info_window">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/custom_info_window-1.0.1/lib" />
             </list>
           </value>
         </entry>
@@ -786,6 +800,13 @@
             </list>
           </value>
         </entry>
+        <entry key="stacked_card_carousel">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/stacked_card_carousel-0.0.4/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="stream_channel">
           <value>
             <list>
@@ -948,6 +969,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/audioplayers_web-5.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/audioplayers_windows-4.1.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/boolean_selector-2.1.2/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/card_swiper-3.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/carousel_slider-5.0.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/characters-1.4.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/clock-1.1.2/lib" />
@@ -960,6 +982,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/crypto-3.0.6/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/csslib-1.0.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/cupertino_icons-1.0.8/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/custom_info_window-1.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/dbus-0.7.11/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/dio-5.8.0+1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/dio_web_adapter-2.1.0/lib" />
@@ -1044,6 +1067,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/source_span-1.10.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/sprintf-7.0.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/stack_trace-1.12.1/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/stacked_card_carousel-0.0.4/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/stream_channel-2.1.4/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/stream_transform-2.1.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/string_scanner-1.4.1/lib" />

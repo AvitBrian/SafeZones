@@ -22,8 +22,9 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = authProvider.currentUser;
     final userData = authProvider.userData;
     String userId = user?.uid ?? '';
-    
-    final backgroundColor = MyConstants.getBackgroundColor(settingsProvider.darkMode);
+
+    final backgroundColor =
+        MyConstants.getBackgroundColor(settingsProvider.darkMode);
     final textColor = MyConstants.getTextColor(settingsProvider.darkMode);
     final subtextColor = MyConstants.getSubtextColor(settingsProvider.darkMode);
 
@@ -46,15 +47,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 backgroundImage: userData?.profileImageUrl != null
                     ? NetworkImage(userData!.profileImageUrl)
                     : user?.photoURL != null
-                    ? NetworkImage(user!.photoURL!)
-                    : null,
-                child: userData?.profileImageUrl == null && user?.photoURL == null
-                    ? const Icon(Icons.person, size: 50)
-                    : null,
+                        ? NetworkImage(user!.photoURL!)
+                        : null,
+                child:
+                    userData?.profileImageUrl == null && user?.photoURL == null
+                        ? const Icon(Icons.person, size: 50)
+                        : null,
               ),
               const SizedBox(height: 16),
               Text(
-                userData?.username ?? user?.displayName ?? "User",
+                userData?.username ?? user?.displayName ?? " ",
                 style: TextStyle(
                   fontSize: 24,
                   color: textColor,
@@ -63,7 +65,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(height: 8),
               Text(
-                userData?.email ?? user?.email ?? "@user",
+                userData?.email ?? user?.email ?? " ",
                 style: TextStyle(
                   fontSize: 16,
                   color: subtextColor,
@@ -73,7 +75,9 @@ class _ProfilePageState extends State<ProfilePage> {
               TextButton(
                 onPressed: () => _updateLocation(context, authProvider),
                 child: Text(
-                  userData?.location.isNotEmpty == true ? userData!.location : "Set Location",
+                  userData?.location.isNotEmpty == true
+                      ? userData!.location
+                      : "Set Location",
                   style: TextStyle(
                     fontSize: 16,
                     color: subtextColor,
@@ -81,7 +85,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               const SizedBox(height: 32),
-
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -102,12 +105,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     FutureBuilder<int>(
                       future: FirestoreService().countUserFlags(userId),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
                         }
 
                         if (snapshot.hasError) {
-                          return Center(child: Text('Error: ${snapshot.error}'));
+                          return Center(
+                              child: Text('Error: ${snapshot.error}'));
                         }
 
                         int flagCount = snapshot.data ?? 0;
@@ -115,7 +121,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _buildStatItem("Flags Raised", flagCount.toString(), textColor, subtextColor),
+                            _buildStatItem("Flags Raised", flagCount.toString(),
+                                textColor, subtextColor),
                           ],
                         );
                       },
@@ -124,7 +131,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               SizedBox(height: MyConstants.screenHeight(context) * .30),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -154,7 +160,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatItem(String title, String value, Color textColor, Color subtextColor) {
+  Widget _buildStatItem(
+      String title, String value, Color textColor, Color subtextColor) {
     return Column(
       children: [
         Text(
@@ -164,7 +171,10 @@ class _ProfilePageState extends State<ProfilePage> {
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(color: MyConstants.primaryColor, fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: MyConstants.primaryColor,
+              fontSize: 24,
+              fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -178,9 +188,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _updateLocation(BuildContext context, AuthService authProvider) {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
     TextEditingController locationController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -188,15 +199,19 @@ class _ProfilePageState extends State<ProfilePage> {
           backgroundColor: MyConstants.getTilesColor(settingsProvider.darkMode),
           title: Text(
             "Update Location",
-            style: TextStyle(color: MyConstants.getTextColor(settingsProvider.darkMode)),
+            style: TextStyle(
+                color: MyConstants.getTextColor(settingsProvider.darkMode)),
           ),
           content: TextField(
             controller: locationController,
             decoration: InputDecoration(
               hintText: "Enter new location",
-              hintStyle: TextStyle(color: MyConstants.getHintTextColor(settingsProvider.darkMode)),
+              hintStyle: TextStyle(
+                  color:
+                      MyConstants.getHintTextColor(settingsProvider.darkMode)),
             ),
-            style: TextStyle(color: MyConstants.getTextColor(settingsProvider.darkMode)),
+            style: TextStyle(
+                color: MyConstants.getTextColor(settingsProvider.darkMode)),
           ),
           actions: [
             TextButton(
@@ -216,7 +231,9 @@ class _ProfilePageState extends State<ProfilePage> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 "Cancel",
-                style: TextStyle(color: MyConstants.getSubtextColor(settingsProvider.darkMode)),
+                style: TextStyle(
+                    color:
+                        MyConstants.getSubtextColor(settingsProvider.darkMode)),
               ),
             ),
           ],

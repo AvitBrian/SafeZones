@@ -1,0 +1,2 @@
+/home/kira/Code/ALU/Capstone /SafeZones/android/app/.cxx/RelWithDebInfo/51u5i1c3/x86_64/CMakeFiles/edit_cache.dir
+/home/kira/Code/ALU/Capstone /SafeZones/android/app/.cxx/RelWithDebInfo/51u5i1c3/x86_64/CMakeFiles/rebuild_cache.dir

@@ -1,18 +1,21 @@
-Welcome to SafeZones!
-
 In order to use our service, please read and accept our terms:
 
-    Location and Safety:
+1. Location and Safety:
 
-    We utilize your GPS data to send timely, location-specific safety alerts. This allows you to stay aware of potentially dangerous locations around you.
-    User Contributions:
+We utilize your GPS data to send timely, location-specific safety alerts. This allows you to stay aware of potentially dangerous locations around you.
 
-When you give feedback or report safety concerns, your information is anonymized and applied to improve our AI forecasts. Your input contributes to a safer community.
-Data Protection:
+2. User Contributions:
+
+When you give feedback or report safety, concerns your information is anonymized and applied to improve our AI predictions. Your input contributes to a safer community!
+
+3. Data Protection:
 
 We store and encrypt your data so that you can remain private. Your data is never released without your permission, except when the law demands it.
 
+4. Conduct:
+
 SafeZones is dedicated only to public safety. Misuse of the app (for personal, political, or other non-security purposes) may lead to account restriction.
-Your Consent:
+
+4. Your Consent:
 
 When you check "Accept," you agree that you have read and agree to our entire Privacy Policy and Terms of Service, which detail our practices further.

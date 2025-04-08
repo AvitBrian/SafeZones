@@ -64,6 +64,13 @@ class MapConfig {
         "lightness": 2
       }
     ]
+  },
+  {
+    "featureType": "landscape.natural",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#a0d468" }
+    ]
   }
 ]
 ''';
@@ -130,6 +137,13 @@ class MapConfig {
       {
         "lightness": 5
       }
+    ]
+  },
+   {
+    "featureType": "landscape.natural",
+    "elementType": "geometry",
+    "stylers": [
+      { "color": "#a0d468" }
     ]
   }
 ]
